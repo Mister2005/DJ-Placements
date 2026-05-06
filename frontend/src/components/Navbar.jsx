@@ -4,6 +4,7 @@ import { AnimatePresence, motion } from 'framer-motion'
 import { Bell, Briefcase, Calendar, ClipboardList, LayoutDashboard, LogOut, Menu, MessageSquare, User, X } from 'lucide-react'
 import { useAuthStore, useNotificationStore } from '../context/store'
 import { notificationService } from '../services/api'
+import { BrandLogo } from './BrandLogo'
 
 export default function Navbar() {
   const [isOpen, setIsOpen] = useState(false)
@@ -83,10 +84,10 @@ export default function Navbar() {
     >
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
         <div className="flex items-center gap-6">
-          <Link to="/dashboard" className="flex items-center gap-3 rounded-lg" aria-label="PlaceHub dashboard">
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary text-sm font-bold text-white shadow-sm">PH</div>
+          <Link to="/dashboard" className="flex items-center gap-3 rounded-lg" aria-label="Rolewise dashboard">
+            <BrandLogo compact />
             <div className="hidden sm:block">
-              <p className="text-sm font-bold leading-none text-foreground">PlaceHub</p>
+              <p className="text-sm font-bold leading-none text-foreground">Rolewise</p>
               <p className="mt-0.5 text-[11px] font-medium text-secondary-foreground">Placement OS</p>
             </div>
           </Link>
@@ -256,7 +257,7 @@ export default function Navbar() {
             >
               <div className="mb-5 flex items-center justify-between border-b border-secondary-border pb-4">
                 <div>
-                  <p className="font-bold text-foreground">PlaceHub</p>
+                  <p className="font-bold text-foreground">Rolewise</p>
                   <p className="text-xs text-secondary-foreground">{user?.email}</p>
                 </div>
                 <button

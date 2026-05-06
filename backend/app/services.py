@@ -11,7 +11,7 @@ No route or matcher code changes needed.
 import os
 from app.interfaces import TextExtractor, SkillExtractor, EmbeddingProvider, VectorStore, JobMatcher
 from app.extractors import PdfTextExtractor, LLMSkillExtractor
-from app.embeddings import TfidfEmbeddingProvider
+from app.embeddings import PineconeEmbeddingProvider
 from app.vector_store import PineconeVectorStore
 from app.matcher import HybridJobMatcher
 
@@ -42,7 +42,7 @@ def _create_skill_extractor() -> SkillExtractor:
 # Singleton instances
 _text_extractor: TextExtractor = PdfTextExtractor()
 _skill_extractor: SkillExtractor = None  # Lazy init
-_embedding_provider: EmbeddingProvider = TfidfEmbeddingProvider(max_features=512)
+_embedding_provider: EmbeddingProvider = None  # Lazy init
 _vector_store: VectorStore = None  # Lazy init
 _job_matcher: JobMatcher = None  # Lazy init
 
@@ -59,6 +59,9 @@ def get_skill_extractor() -> SkillExtractor:
 
 
 def get_embedding_provider() -> EmbeddingProvider:
+    global _embedding_provider
+    if _embedding_provider is None:
+        _embedding_provider = PineconeEmbeddingProvider()
     return _embedding_provider
 
 

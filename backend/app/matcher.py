@@ -22,7 +22,7 @@ class HybridJobMatcher(JobMatcher):
     def __init__(self, embedding_provider: EmbeddingProvider, vector_store: VectorStore):
         self._embedder = embedding_provider
         self._store = vector_store
-        self._jobs_indexed = False
+        self._jobs_indexed = True  # Jobs are pre-indexed in Pinecone
         self._user_embeddings_cache: Dict[int, List[float]] = {}
 
     def index_jobs(self, jobs: List[Dict[str, Any]]) -> None:
@@ -78,7 +78,8 @@ class HybridJobMatcher(JobMatcher):
         if not user_text.strip():
             return {job["id"]: 0 for job in jobs}
 
-        # Index jobs if not done yet (first request only)
+        # Jobs are pre-indexed in Pinecone (done once via seed/script)
+        # Only index if explicitly not done
         if not self._jobs_indexed:
             self.index_jobs(jobs)
 

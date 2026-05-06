@@ -1,46 +1,55 @@
 """
-Embedding provider — TF-IDF 512-dim vectors.
-These are REAL embeddings (not keyword matching). TF-IDF captures term importance
-relative to the corpus, producing dense-like sparse vectors perfect for cosine similarity.
-No API calls, instant computation, deterministic.
+Dense embedding provider using Pinecone Inference API.
+Model: multilingual-e5-large (1024 dimensions)
+Batch support — embeds multiple texts in one API call.
 """
 
+import os
 from typing import List
-from sklearn.feature_extraction.text import TfidfVectorizer
 from app.interfaces import EmbeddingProvider
 
 
-class TfidfEmbeddingProvider(EmbeddingProvider):
+class PineconeEmbeddingProvider(EmbeddingProvider):
     """
-    512-dimensional TF-IDF embeddings.
-    Fits on the full corpus for accurate IDF weights.
+    Real dense embeddings via Pinecone's inference API.
+    Uses multilingual-e5-large model (1024-dim).
+    Supports batching — up to 96 texts per call.
     """
 
-    def __init__(self, max_features: int = 512):
-        self._max_features = max_features
-        self._vectorizer = TfidfVectorizer(
-            stop_words="english",
-            max_features=self._max_features,
-            ngram_range=(1, 2),
-            sublinear_tf=True,
-        )
+    def __init__(self):
+        from pinecone import Pinecone
+        api_key = os.getenv("PINECONE_API_KEY", "")
+        if not api_key:
+            raise ValueError("PINECONE_API_KEY required")
+        self._pc = Pinecone(api_key=api_key)
 
     def embed(self, text: str) -> List[float]:
         if not text.strip():
-            return [0.0] * self._max_features
-        matrix = self._vectorizer.fit_transform([text])
-        dense = matrix.toarray()[0]
-        result = list(map(float, dense)) + [0.0] * (self._max_features - len(dense))
-        return result[:self._max_features]
+            return [0.0] * 1024
+        result = self._pc.inference.embed(
+            model="multilingual-e5-large",
+            inputs=[text],
+            parameters={"input_type": "passage", "truncate": "END"},
+        )
+        return list(result.data[0].values)
 
     def embed_batch(self, texts: List[str], contexts: List[str] = None) -> List[List[float]]:
         if not texts:
             return []
-        clean = [t if t.strip() else "empty" for t in texts]
-        matrix = self._vectorizer.fit_transform(clean)
-        dense = matrix.toarray()
-        results = []
-        for row in dense:
-            vec = list(map(float, row)) + [0.0] * (self._max_features - len(row))
-            results.append(vec[:self._max_features])
-        return results
+
+        clean = [t if t.strip() else "empty document" for t in texts]
+        all_embeddings = []
+
+        # Pinecone batch limit is 96
+        batch_size = 96
+        for i in range(0, len(clean), batch_size):
+            batch = clean[i:i + batch_size]
+            result = self._pc.inference.embed(
+                model="multilingual-e5-large",
+                inputs=batch,
+                parameters={"input_type": "passage", "truncate": "END"},
+            )
+            for item in result.data:
+                all_embeddings.append(list(item.values))
+
+        return all_embeddings

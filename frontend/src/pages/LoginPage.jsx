@@ -1,8 +1,25 @@
 import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { AlertCircle, ArrowRight, BriefcaseBusiness, Eye, EyeOff, Loader2 } from 'lucide-react'
+import {
+  AlertCircle,
+  ArrowRight,
+  Bell,
+  BriefcaseBusiness,
+  CalendarClock,
+  CheckCircle2,
+  Eye,
+  EyeOff,
+  FileSearch,
+  Gauge,
+  Layers3,
+  Loader2,
+  RadioTower,
+  Sparkles,
+  Target,
+} from 'lucide-react'
 import { useAuthStore } from '../context/store'
 import { authService } from '../services/api'
+import { BrandLogo, BrandMark } from '../components/BrandLogo'
 
 export default function LoginPage() {
   const [email, setEmail] = useState('')
@@ -38,39 +55,61 @@ export default function LoginPage() {
   return (
     <main className="min-h-screen bg-background px-4 py-6 sm:px-6 lg:px-8">
       <div className="command-surface mx-auto grid min-h-[calc(100vh-3rem)] w-full max-w-6xl overflow-hidden lg:grid-cols-[1fr_440px]">
-        <section className="hidden border-r border-secondary-border p-10 lg:flex lg:flex-col lg:justify-between">
-          <div>
-            <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-primary text-sm font-bold text-white">PH</div>
-            <p className="ambient-label mt-10">Placement OS</p>
-            <h1 className="mt-5 max-w-xl text-5xl font-bold tracking-tight text-foreground">Glass-clear control over every placement decision.</h1>
-            <p className="mt-4 max-w-xl text-base leading-7 text-secondary-foreground">Track applications, compare job fit, manage deadlines, and keep your profile ready inside one sharp command surface.</p>
+        <section className="login-showcase hidden border-r border-secondary-border p-8 lg:flex lg:flex-col">
+          <div className="flex items-center justify-between">
+            <BrandLogo />
+            <div className="flex items-center gap-2 rounded-full border border-secondary-border bg-white/60 px-3 py-1.5 text-xs font-semibold text-secondary-foreground">
+              <RadioTower className="h-3.5 w-3.5 text-primary" /> Live placement desk
+            </div>
           </div>
-          <div className="grid grid-cols-3 gap-3">
-            {[
-              ['Job matching', '92%'],
-              ['Deadline radar', '4 open'],
-              ['Pipeline', 'Active'],
-            ].map(([item, value]) => (
-              <div key={item} className="metric-card p-4">
-                <p className="text-xs font-semibold text-secondary-foreground">{item}</p>
-                <p className="mt-2 text-xl font-bold text-foreground">{value}</p>
+
+          <div className="mt-10 grid flex-1 grid-rows-[auto_1fr_auto] gap-6">
+            <div className="grid gap-7 xl:grid-cols-[0.92fr_1.08fr] xl:items-center">
+              <div>
+                <p className="ambient-label">Rolewise OS</p>
+                <h1 className="mt-5 max-w-lg text-5xl font-bold leading-[0.96] text-foreground">
+                  See every role, deadline, and decision path at once.
+                </h1>
+                <p className="mt-5 max-w-md text-base leading-7 text-secondary-foreground">
+                  A glass command center for matching jobs, tracking applications, and acting before opportunities close.
+                </p>
               </div>
-            ))}
+
+              <PlacementIntelligence />
+            </div>
+
+            <PipelineBoard />
+
+            <div className="grid grid-cols-3 gap-3">
+              {[
+                ['Match score', '92%', Target],
+                ['Open deadlines', '4', CalendarClock],
+                ['Profile ready', '86%', Gauge],
+              ].map(([item, value, Icon]) => (
+                <div key={item} className="metric-card p-4">
+                  <div className="mb-3 flex h-8 w-8 items-center justify-center rounded-lg bg-white/60 text-primary">
+                    <Icon className="h-4 w-4" />
+                  </div>
+                  <p className="text-xs font-semibold text-secondary-foreground">{item}</p>
+                  <p className="mt-2 text-xl font-bold text-foreground">{value}</p>
+                </div>
+              ))}
+            </div>
           </div>
         </section>
 
         <section className="flex items-center justify-center p-6 sm:p-10">
           <div className="w-full max-w-md">
             <div className="mb-8 lg:hidden">
-              <div className="mb-5 flex h-11 w-11 items-center justify-center rounded-lg bg-primary text-sm font-bold text-white">PH</div>
-              <h1 className="text-3xl font-bold tracking-tight text-foreground">PlaceHub</h1>
+              <BrandMark className="mb-5 h-11 w-11" />
+              <h1 className="text-3xl font-bold tracking-tight text-foreground">Rolewise</h1>
             </div>
 
             <div className="mb-7">
               <p className="ambient-label mb-4">
-                <BriefcaseBusiness className="h-3.5 w-3.5" /> Student placement platform
+                <BriefcaseBusiness className="h-3.5 w-3.5" /> Student career command center
               </p>
-              <h2 className="text-3xl font-bold tracking-tight text-foreground">{isSignup ? 'Create your account' : 'Sign in to PlaceHub'}</h2>
+              <h2 className="text-3xl font-bold tracking-tight text-foreground">{isSignup ? 'Create your account' : 'Sign in to Rolewise'}</h2>
               <p className="mt-2 text-sm leading-6 text-secondary-foreground">
                 {isSignup ? 'Set up your profile and start building a placement pipeline.' : 'Use your college email to continue to your placement workspace.'}
               </p>
@@ -113,7 +152,7 @@ export default function LoginPage() {
             </form>
 
             <div className="mt-5 text-center text-sm text-secondary-foreground">
-              {isSignup ? 'Already have an account?' : 'New to PlaceHub?'}{' '}
+              {isSignup ? 'Already have an account?' : 'New to Rolewise?'}{' '}
               <button type="button" onClick={() => { setIsSignup(!isSignup); setError('') }} className="font-semibold text-primary hover:text-primary-hover">
                 {isSignup ? 'Sign in' : 'Create an account'}
               </button>
@@ -130,5 +169,79 @@ export default function LoginPage() {
         </section>
       </div>
     </main>
+  )
+}
+
+function PlacementIntelligence() {
+  const nodes = [
+    { label: 'Resume', icon: FileSearch, className: 'left-[7%] top-[18%]' },
+    { label: 'Roles', icon: BriefcaseBusiness, className: 'right-[8%] top-[20%]' },
+    { label: 'Alerts', icon: Bell, className: 'bottom-[14%] left-[13%]' },
+    { label: 'Rounds', icon: Layers3, className: 'bottom-[16%] right-[10%]' },
+  ]
+
+  return (
+    <div className="placement-orbit min-h-[300px]">
+      <div className="orbit-ring orbit-ring-lg" />
+      <div className="orbit-ring orbit-ring-md" />
+      <div className="orbit-scan" />
+
+      <div className="orbit-core">
+        <Sparkles className="h-5 w-5 text-primary" />
+        <p className="mt-3 text-xs font-semibold uppercase tracking-[0.16em] text-secondary-foreground">Best fit</p>
+        <p className="mt-1 text-4xl font-bold text-foreground">92%</p>
+        <p className="mt-2 text-xs text-secondary-foreground">3 priority roles detected</p>
+      </div>
+
+      {nodes.map(({ label, icon: Icon, className }) => (
+        <div key={label} className={`orbit-node ${className}`}>
+          <Icon className="h-4 w-4" />
+          <span>{label}</span>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+function PipelineBoard() {
+  const stages = [
+    { label: 'Applied', count: 8, active: true },
+    { label: 'Shortlist', count: 3, active: true },
+    { label: 'Interview', count: 2, active: true },
+    { label: 'Offer', count: 1, active: false },
+  ]
+
+  return (
+    <div className="login-board">
+      <div className="flex items-center justify-between gap-4">
+        <div>
+          <p className="text-sm font-bold text-foreground">Application pipeline</p>
+          <p className="mt-1 text-xs text-secondary-foreground">From saved role to final decision</p>
+        </div>
+        <span className="status-pill border-emerald-200 bg-emerald-50 text-emerald-700">
+          <CheckCircle2 className="h-3.5 w-3.5" /> On track
+        </span>
+      </div>
+
+      <div className="mt-5 grid grid-cols-4 gap-3">
+        {stages.map((stage, index) => (
+          <div key={stage.label} className="pipeline-stage">
+            <div className={`pipeline-dot ${stage.active ? 'pipeline-dot-active' : ''}`}>{index + 1}</div>
+            <p className="mt-3 text-xs font-semibold text-secondary-foreground">{stage.label}</p>
+            <p className="mt-1 text-lg font-bold text-foreground">{stage.count}</p>
+          </div>
+        ))}
+      </div>
+
+      <div className="mt-5 grid grid-cols-[1fr_auto] gap-3">
+        <div className="rounded-lg border border-secondary-border bg-white/60 p-3">
+          <p className="text-xs font-semibold text-secondary-foreground">Next deadline</p>
+          <p className="mt-1 text-sm font-bold text-foreground">Data Analyst Intern - 22 hours</p>
+        </div>
+        <div className="flex items-center rounded-lg border border-blue-200 bg-blue-50 px-3 text-sm font-bold text-blue-700">
+          Act now
+        </div>
+      </div>
+    </div>
   )
 }

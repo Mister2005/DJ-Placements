@@ -1,4 +1,4 @@
-# PlaceHub - Student Placement Portal
+# Rolewise - Student Placement OS
 
 A full-stack student placement application with React frontend and Flask backend.
 
