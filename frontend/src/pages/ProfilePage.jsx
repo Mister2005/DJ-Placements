@@ -85,9 +85,22 @@ export default function ProfilePage() {
         const parseRes = await resumeService.parseResume(file)
         if (parseRes.data.extracted_skills && parseRes.data.extracted_skills.length > 0) {
           setExtractedSkills(parseRes.data.extracted_skills)
-          // Auto-update skills in form
           setFormData(prev => ({ ...prev, skills: parseRes.data.all_skills }))
           setProfile(prev => ({ ...prev, skills: parseRes.data.all_skills }))
+        }
+        // Auto-fill profile fields from resume
+        if (parseRes.data.profile_info) {
+          const info = parseRes.data.profile_info
+          const updates = {}
+          if (info.name) updates.name = info.name
+          if (info.phone) updates.phone = info.phone
+          if (info.cgpa) updates.cgpa = info.cgpa
+          if (info.branch) updates.branch = info.branch
+          if (info.current_year) updates.current_year = info.current_year
+          if (Object.keys(updates).length > 0) {
+            setFormData(prev => ({ ...prev, ...updates }))
+            setProfile(prev => ({ ...prev, ...updates }))
+          }
         }
       } catch (err) {
         console.error('Failed to upload/parse resume:', err)

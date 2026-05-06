@@ -52,15 +52,23 @@ class LLMSkillExtractor(SkillExtractor):
         # Truncate very long resumes to fit context window
         truncated = text[:4000]
 
-        prompt = f"""Analyze this resume text and extract ALL technical skills, tools, frameworks, programming languages, and professional competencies mentioned.
+        prompt = f"""You are a resume parser. Extract ONLY technical skills from this resume.
 
-Return ONLY a JSON array of skill strings. No explanations, no markdown, just the JSON array.
-Example output: ["Python", "React", "System Design", "AWS", "Machine Learning"]
+RULES:
+- Only include programming languages, frameworks, libraries, tools, databases, cloud platforms, and technical methodologies.
+- DO NOT include: certifications, degrees, university names, company names, project names, soft skills (like "problem solving", "teamwork"), or generic terms (like "debugging", "system faults").
+- Use standard naming conventions: "Python" not "python", "Node.js" not "nodejs", "React" not "ReactJS", "AWS" not "Amazon Web Services", "PostgreSQL" not "postgres", "TensorFlow" not "Tensorflow", "scikit-learn" not "sklearn".
+- Keep each skill concise (1-3 words max).
+- Maximum 20 skills.
 
-Resume text:
-{truncated}
+VALID examples: Python, Java, React, Node.js, AWS, Docker, Kubernetes, PostgreSQL, MongoDB, TensorFlow, PyTorch, Flask, Django, Spring Boot, SQL, Git, Linux, Kafka, Redis, GraphQL
 
-JSON array of extracted skills:"""
+INVALID examples: Problem Solving, Debugging, System Faults, Google Colab, Kaggle, GitHub, BioBERT, ERP Systems, Communication, Leadership
+
+Return ONLY a JSON array. Nothing else.
+
+Resume:
+{truncated}"""
 
         try:
             completion = self._client.chat.completions.create(

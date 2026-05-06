@@ -47,7 +47,10 @@ def parse_resume():
     skill_extractor = get_skill_extractor()
     extracted_skills = skill_extractor.extract_skills(resume_text)
 
-    # Merge with existing (additive — never removes user's manual skills)
+    # Extract profile info (name, phone, cgpa, branch) via LLM
+    profile_info = _extract_profile_info(resume_text)
+
+    # Merge skills (additive — never removes user's manual skills)
     existing_lower = set(s.lower() for s in (user.skills or []))
     new_skills = list(user.skills or [])
     for skill in extracted_skills:
@@ -56,6 +59,19 @@ def parse_resume():
             existing_lower.add(skill.lower())
 
     user.skills = new_skills
+
+    # Auto-fill profile fields if found in resume and currently empty
+    if profile_info.get("name") and not user.name.strip():
+        user.name = profile_info["name"]
+    if profile_info.get("phone") and not user.phone.strip():
+        user.phone = profile_info["phone"]
+    if profile_info.get("cgpa") and user.cgpa == 0.0:
+        user.cgpa = profile_info["cgpa"]
+    if profile_info.get("branch") and not user.branch.strip():
+        user.branch = profile_info["branch"]
+    if profile_info.get("current_year") and not user.current_year.strip():
+        user.current_year = profile_info["current_year"]
+
     db.session.commit()
 
     # Cleanup
@@ -69,6 +85,7 @@ def parse_resume():
         "resume_text_preview": resume_text[:500] if resume_text else "",
         "extracted_skills": extracted_skills,
         "all_skills": new_skills,
+        "profile_info": profile_info,
     }), 200
 
 
@@ -125,3 +142,79 @@ def auto_match_jobs():
 
     results.sort(key=lambda x: x["match_score"], reverse=True)
     return jsonify({"jobs": results}), 200
+
+
+def _extract_profile_info(resume_text: str) -> dict:
+    """Use LLM to extract personal/academic info from resume text."""
+    import os
+    import json
+    from groq import Groq
+
+    if not resume_text or len(resume_text.strip()) < 50:
+        return {}
+
+    api_key = os.getenv("GROQ_API_KEY", "")
+    if not api_key:
+        return {}
+
+    client = Groq(api_key=api_key)
+    truncated = resume_text[:3000]
+
+    prompt = f"""Extract personal and academic information from this resume. Return a JSON object with these fields ONLY:
+- "name": full name of the person (string or null if not found)
+- "phone": phone number with country code (string or null)
+- "cgpa": CGPA/GPA as a number (float or null). Look for CGPA, GPA, percentage converted to 10-scale.
+- "branch": field of study like "Computer Science", "Electronics", "Mechanical" (string or null)
+- "current_year": academic year like "Final Year", "3rd Year", "Graduate" (string or null)
+
+Return ONLY the JSON object. No explanation.
+
+Resume:
+{truncated}"""
+
+    try:
+        completion = client.chat.completions.create(
+            model="llama-3.1-8b-instant",
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0.1,
+            max_completion_tokens=4096,
+        )
+        response = completion.choices[0].message.content.strip()
+
+        # Find JSON object in response
+        if "```" in response:
+            parts = response.split("```")
+            for part in parts:
+                part = part.strip()
+                if part.startswith("json"):
+                    part = part[4:].strip()
+                if part.startswith("{"):
+                    response = part
+                    break
+
+        start = response.find("{")
+        end = response.rfind("}")
+        if start != -1 and end != -1:
+            response = response[start:end + 1]
+
+        data = json.loads(response)
+        result = {}
+
+        if data.get("name") and isinstance(data["name"], str):
+            result["name"] = data["name"].strip()
+        if data.get("phone") and isinstance(data["phone"], str):
+            result["phone"] = data["phone"].strip()
+        if data.get("cgpa") is not None:
+            try:
+                result["cgpa"] = float(data["cgpa"])
+            except (ValueError, TypeError):
+                pass
+        if data.get("branch") and isinstance(data["branch"], str):
+            result["branch"] = data["branch"].strip()
+        if data.get("current_year") and isinstance(data["current_year"], str):
+            result["current_year"] = data["current_year"].strip()
+
+        return result
+    except Exception as e:
+        print(f"[ProfileExtractor] Error: {e}")
+        return {}
