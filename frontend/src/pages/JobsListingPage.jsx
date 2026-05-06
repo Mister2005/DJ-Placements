@@ -1,6 +1,9 @@
-import React, { useState, useEffect } from 'react'
+import React, { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { AnimatePresence, motion } from 'framer-motion'
+import { Search, SlidersHorizontal, Sparkles, X } from 'lucide-react'
 import { useJobStore } from '../context/store'
+import { EmptyState, PageHeader } from '../components/Common'
 import { JobCard, SkeletonJobCard } from '../components/JobCard'
 import { JobFilters } from '../components/JobFilters'
 import { jobService, resumeService } from '../services/api'
@@ -11,8 +14,10 @@ export default function JobsListingPage() {
   const [autoMatch, setAutoMatch] = useState(false)
   const [autoMatchJobs, setAutoMatchJobs] = useState([])
   const [matchLoading, setMatchLoading] = useState(false)
+  const [showMobileFilters, setShowMobileFilters] = useState(false)
+
   const navigate = useNavigate()
-  const { jobs, filteredJobs, setJobs, filterJobs, savedjobs, toggleSaveJob, setSavedJobs } = useJobStore()
+  const { filteredJobs, setJobs, filterJobs, savedjobs, toggleSaveJob, setSavedJobs } = useJobStore()
 
   useEffect(() => {
     const fetchJobs = async () => {
@@ -21,8 +26,8 @@ export default function JobsListingPage() {
           jobService.getAllJobs(),
           jobService.getBookmarks()
         ])
-        setJobs(jobsRes.data.jobs)
-        setSavedJobs(bookmarksRes.data.bookmarks.map(b => b.job_id))
+        setJobs(jobsRes.data.jobs || [])
+        setSavedJobs((bookmarksRes.data.bookmarks || []).map((bookmark) => bookmark.job_id))
       } catch (err) {
         console.error('Failed to fetch jobs:', err)
       } finally {
@@ -30,24 +35,23 @@ export default function JobsListingPage() {
       }
     }
     fetchJobs()
-  }, [])
+  }, [setJobs, setSavedJobs])
 
   useEffect(() => {
-    if (!autoMatch) {
-      filterJobs(filters)
-    }
-  }, [filters, autoMatch])
+    if (!autoMatch) filterJobs(filters)
+  }, [filters, autoMatch, filterJobs])
 
   const handleAutoMatchToggle = async () => {
     if (autoMatch) {
       setAutoMatch(false)
+      setAutoMatchJobs([])
       return
     }
     setMatchLoading(true)
     setAutoMatch(true)
     try {
       const res = await resumeService.autoMatchJobs()
-      setAutoMatchJobs(res.data.jobs)
+      setAutoMatchJobs(res.data.jobs || [])
     } catch (err) {
       console.error('Failed to auto-match:', err)
       setAutoMatch(false)
@@ -56,17 +60,10 @@ export default function JobsListingPage() {
     }
   }
 
-  const handleApply = (jobId) => {
-    navigate(`/jobs/${jobId}`)
-  }
-
   const handleSave = async (jobId) => {
     try {
-      if (savedjobs.includes(jobId)) {
-        await jobService.removeBookmark(jobId)
-      } else {
-        await jobService.bookmarkJob(jobId)
-      }
+      if (savedjobs.includes(jobId)) await jobService.removeBookmark(jobId)
+      else await jobService.bookmarkJob(jobId)
       toggleSaveJob(jobId)
     } catch (err) {
       console.error('Failed to toggle bookmark:', err)
@@ -78,62 +75,95 @@ export default function JobsListingPage() {
   const locations = ['Bangalore', 'Pune', 'Hyderabad', 'Delhi', 'Mumbai']
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-7xl mx-auto px-4 py-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-8">Explore Job Opportunities</h1>
+    <main className="page-shell">
+      <div className="page-container">
+        <PageHeader
+          eyebrow="Job discovery"
+          title="Explore opportunities"
+          description="Search, filter, save, and compare roles before opening the full job brief."
+          actions={(
+            <>
+              <button type="button" onClick={() => setShowMobileFilters(true)} className="btn-secondary lg:hidden">
+                <SlidersHorizontal className="h-4 w-4" /> Filters
+              </button>
+              <button
+                type="button"
+                onClick={handleAutoMatchToggle}
+                disabled={matchLoading}
+                className={autoMatch ? 'btn-primary' : 'btn-secondary'}
+              >
+                {matchLoading ? <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" /> : <Sparkles className="h-4 w-4" />}
+                {autoMatch ? 'Auto-match on' : 'Auto-match'}
+              </button>
+            </>
+          )}
+        />
 
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-          <div className="lg:col-span-1">
-            <JobFilters
-              filters={filters}
-              onFilterChange={setFilters}
-              domains={domains}
-              locations={locations}
-              autoMatch={autoMatch}
-              onAutoMatchToggle={handleAutoMatchToggle}
-              autoMatchLoading={matchLoading}
-            />
+        <div className="grid gap-6 lg:grid-cols-[300px_minmax(0,1fr)]">
+          <div className="hidden lg:block">
+            <div className="sticky top-24">
+              <JobFilters filters={filters} onFilterChange={setFilters} domains={domains} locations={locations} />
+            </div>
           </div>
 
-          <div className="lg:col-span-3">
-            <div className="mb-4 text-sm text-gray-600">
-              Showing <span className="font-semibold">{displayJobs.length}</span> job(s)
-              {autoMatch && ' — sorted by AI match score'}
+          <section>
+            <div className="command-surface mb-4 flex flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex items-center gap-2 text-sm text-secondary-foreground">
+                <Search className="h-4 w-4" />
+                <span><strong className="text-foreground">{displayJobs.length}</strong> {displayJobs.length === 1 ? 'opportunity' : 'opportunities'} shown</span>
+              </div>
+              {autoMatch && <span className="status-pill border-blue-200 bg-blue-50 text-blue-700">Sorted by resume fit</span>}
             </div>
 
             {loading || matchLoading ? (
               <div className="grid gap-4">
-                {[...Array(3)].map((_, i) => (
-                  <SkeletonJobCard key={i} />
-                ))}
+                {[...Array(4)].map((_, index) => <SkeletonJobCard key={index} />)}
               </div>
             ) : displayJobs.length > 0 ? (
-              <div className="grid gap-4">
-                {displayJobs.map((job) => (
-                  <JobCard
-                    key={job.id}
-                    job={job}
-                    isSaved={savedjobs.includes(job.id)}
-                    onSave={handleSave}
-                    onApply={handleApply}
-                    matchScore={autoMatch ? job.skill_match_pct : undefined}
-                  />
-                ))}
-              </div>
+              <motion.div className="grid gap-4" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+                <AnimatePresence mode="popLayout">
+                  {displayJobs.map((job) => (
+                    <JobCard
+                      key={job.id}
+                      job={job}
+                      isSaved={savedjobs.includes(job.id)}
+                      onSave={handleSave}
+                      onApply={(jobId) => navigate(`/jobs/${jobId}`)}
+                      matchScore={autoMatch ? job.skill_match_pct : undefined}
+                    />
+                  ))}
+                </AnimatePresence>
+              </motion.div>
             ) : (
-              <div className="text-center py-12 bg-white rounded-lg">
-                <p className="text-gray-500 font-medium">No jobs found matching your filters</p>
-                <button
-                  onClick={() => { setFilters({}); setAutoMatch(false) }}
-                  className="mt-4 text-blue-600 hover:text-blue-700 font-medium"
-                >
-                  Clear filters
-                </button>
-              </div>
+              <EmptyState
+                icon={Search}
+                title="No opportunities match this view"
+                description="Clear the filters or broaden your search terms to see more roles."
+                action={<button type="button" onClick={() => { setFilters({}); setAutoMatch(false); setAutoMatchJobs([]) }} className="btn-secondary">Clear filters</button>}
+              />
             )}
-          </div>
+          </section>
         </div>
       </div>
-    </div>
+
+      <AnimatePresence>
+        {showMobileFilters && (
+          <>
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-40 bg-slate-950/40 backdrop-blur-sm lg:hidden" onClick={() => setShowMobileFilters(false)} />
+            <motion.div initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }} transition={{ duration: 0.2 }} className="fixed inset-x-0 bottom-0 z-50 max-h-[86vh] overflow-hidden rounded-t-lg border-t border-card-border bg-white shadow-xl lg:hidden">
+              <div className="flex items-center justify-between border-b border-secondary-border px-4 py-3">
+                <h3 className="font-bold text-foreground">Filters</h3>
+                <button type="button" onClick={() => setShowMobileFilters(false)} className="rounded-lg p-2 text-secondary-foreground hover:bg-secondary hover:text-foreground" aria-label="Close filters">
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+              <div className="overflow-y-auto p-4">
+                <JobFilters filters={filters} onFilterChange={setFilters} domains={domains} locations={locations} />
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+    </main>
   )
 }

@@ -67,6 +67,16 @@ def parse_resume():
 
     db.session.commit()
 
+    # Pre-compute user embedding for instant auto-match later
+    matcher = get_job_matcher()
+    matcher.invalidate_user_cache(user_id)
+    matcher.embed_user(user_id, {
+        "user_id": user_id,
+        "skills": user.skills or [],
+        "branch": user.branch,
+        "current_year": user.current_year,
+    })
+
     # Cleanup
     try:
         os.remove(temp_path)
@@ -115,7 +125,7 @@ def auto_match_jobs():
     job_dicts = [job.to_dict() for job in jobs]
 
     matcher = get_job_matcher()
-    user_profile = {"skills": user.skills or [], "branch": user.branch, "current_year": user.current_year}
+    user_profile = {"user_id": user_id, "skills": user.skills or [], "branch": user.branch, "current_year": user.current_year}
     scores = matcher.match(user_profile, job_dicts)
 
     # Attach scores and sort

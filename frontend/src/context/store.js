@@ -21,7 +21,7 @@ export const useJobStore = create((set) => ({
     filteredJobs: state.jobs.filter((job) => {
       if (filters.domain && job.domain !== filters.domain) return false
       if (filters.location && !job.location.includes(filters.location)) return false
-      if (filters.jobType && job.jobType !== filters.jobType) return false
+      if (filters.jobType && (job.job_type || job.jobType) !== filters.jobType) return false
       if (filters.search) {
         const search = filters.search.toLowerCase()
         return (

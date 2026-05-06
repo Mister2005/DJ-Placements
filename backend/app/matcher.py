@@ -1,9 +1,9 @@
 """
-Concrete implementation of JobMatcher.
+Job Matcher with pre-computed embeddings.
 
-Single Responsibility: Orchestrates matching using injected dependencies.
-Open/Closed: New matching strategies can be added as new classes.
-Dependency Inversion: Depends on EmbeddingProvider and VectorStore abstractions.
+Jobs are indexed ONCE at startup (or when new jobs are added).
+User profile is embedded ONCE when skills change (resume upload).
+Auto-match just queries Pinecone — instant response.
 """
 
 from typing import Dict, List, Any
@@ -13,25 +13,22 @@ from app.interfaces import JobMatcher, EmbeddingProvider, VectorStore
 
 class HybridJobMatcher(JobMatcher):
     """
-    Matches users to jobs using a hybrid approach:
-    1. Vector similarity (via EmbeddingProvider + VectorStore) — semantic matching
-    2. Direct skill overlap — exact matching
-
-    Final score = 60% vector similarity + 40% skill overlap
-
-    Dependency Inversion: This class doesn't know if embeddings come from
-    TF-IDF or OpenAI, or if vectors are stored in Pinecone or memory.
-    It only talks to abstractions.
+    Matches users to jobs using pre-computed embeddings.
+    - Jobs are indexed at app startup (not per-request)
+    - User embedding is computed on resume upload (cached)
+    - Auto-match = one Pinecone query (fast)
     """
 
     def __init__(self, embedding_provider: EmbeddingProvider, vector_store: VectorStore):
         self._embedder = embedding_provider
         self._store = vector_store
+        self._jobs_indexed = False
+        self._user_embeddings_cache: Dict[int, List[float]] = {}
 
     def index_jobs(self, jobs: List[Dict[str, Any]]) -> None:
         """
-        Index all jobs into the vector store.
-        LLM rewrites each job description for optimal embedding.
+        Index all jobs into Pinecone. Called ONCE at startup.
+        LLM rewrites each job for optimal embedding.
         """
         if not jobs:
             return
@@ -55,29 +52,44 @@ class HybridJobMatcher(JobMatcher):
             })
 
         self._store.upsert(vectors)
+        self._jobs_indexed = True
+
+    def embed_user(self, user_id: int, user_profile: Dict[str, Any]) -> List[float]:
+        """
+        Compute and cache user embedding. Called on resume upload/skill change.
+        """
+        user_text = self._build_user_text(user_profile)
+        if not user_text.strip():
+            return [0.0] * 512
+
+        embedding = self._embedder.embed_batch([user_text], ["user"])[0]
+        self._user_embeddings_cache[user_id] = embedding
+        return embedding
 
     def match(self, user_profile: Dict[str, Any], jobs: List[Dict[str, Any]]) -> Dict[int, int]:
         """
-        Compute match scores for all jobs against a user profile.
-        Returns {job_id: score (0-100)}.
+        Compute match scores. Uses cached embeddings — no LLM calls here.
+        If jobs aren't indexed yet, index them first (one-time cost).
         """
         if not jobs:
             return {}
 
-        # Build user text for embedding
         user_text = self._build_user_text(user_profile)
         if not user_text.strip():
             return {job["id"]: 0 for job in jobs}
 
-        # Index jobs (idempotent — overwrites existing)
-        self.index_jobs(jobs)
+        # Index jobs if not done yet (first request only)
+        if not self._jobs_indexed:
+            self.index_jobs(jobs)
 
-        # Embed user profile with LLM rewriting
-        all_texts = [user_text] + [self._build_job_text(j) for j in jobs]
-        all_contexts = ["user"] + ["job"] * len(jobs)
-        all_embeddings = self._embedder.embed_batch(all_texts, all_contexts)
-        user_embedding = all_embeddings[0]
+        # Get or compute user embedding (cached after first call)
+        user_id = user_profile.get("user_id", 0)
+        if user_id in self._user_embeddings_cache:
+            user_embedding = self._user_embeddings_cache[user_id]
+        else:
+            user_embedding = self.embed_user(user_id, user_profile)
 
+        # Query Pinecone — this is the only network call (fast, ~50ms)
         results = self._store.query(user_embedding, top_k=len(jobs))
 
         # Build score map from vector similarity
@@ -95,27 +107,22 @@ class HybridJobMatcher(JobMatcher):
             job_id = job["id"]
             job_skills = set(s.lower() for s in job.get("skills", []))
 
-            # Vector similarity component (0-100)
             vec_score = vector_scores.get(job_id, 0.0) * 100
 
-            # Skill overlap component (0-100)
             if job_skills:
                 overlap = len(user_skills & job_skills)
                 skill_score = (overlap / len(job_skills)) * 100
             else:
                 skill_score = 0
 
-            # Hybrid: 80% embedding + 20% exact skill match
+            # 80% embedding + 20% skill overlap
             final = (vec_score * 0.8) + (skill_score * 0.2)
             final_scores[job_id] = min(round(final), 100)
 
         return final_scores
 
     def match_single(self, user_profile: Dict[str, Any], job: Dict[str, Any]) -> Dict[str, Any]:
-        """
-        Detailed match for a single job.
-        Returns matched skills, missing skills, and percentage.
-        """
+        """Detailed skill match for a single job (no embedding needed)."""
         user_skills = set(s.lower() for s in user_profile.get("skills", []))
         job_skills = job.get("skills", [])
 
@@ -131,6 +138,10 @@ class HybridJobMatcher(JobMatcher):
             "missing_skills": missing,
             "suggestions": missing[:5],
         }
+
+    def invalidate_user_cache(self, user_id: int) -> None:
+        """Clear cached user embedding (call after skills change)."""
+        self._user_embeddings_cache.pop(user_id, None)
 
     def _build_user_text(self, profile: Dict[str, Any]) -> str:
         parts = []

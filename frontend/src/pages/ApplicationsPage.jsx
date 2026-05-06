@@ -1,5 +1,7 @@
-import React, { useState, useEffect } from 'react'
+import React, { useEffect, useState } from 'react'
+import { Briefcase, Calendar, Check } from 'lucide-react'
 import { ApplicationStatusBadge } from '../components/FeatureComponents'
+import { EmptyState, LoadingState, PageHeader } from '../components/Common'
 import { applicationService } from '../services/api'
 
 export default function ApplicationsPage() {
@@ -11,7 +13,7 @@ export default function ApplicationsPage() {
     const fetchApplications = async () => {
       try {
         const res = await applicationService.getApplications()
-        setApplications(res.data.applications)
+        setApplications(res.data.applications || [])
       } catch (err) {
         console.error('Failed to fetch applications:', err)
       } finally {
@@ -21,96 +23,87 @@ export default function ApplicationsPage() {
     fetchApplications()
   }, [])
 
-  const filteredApplications = applications.filter(app => {
-    if (selectedTab === 'all') return true
-    return app.status === selectedTab
-  })
+  if (loading) return <LoadingState label="Loading applications" />
 
-  const tabCounts = {
-    all: applications.length,
-    applied: applications.filter(a => a.status === 'applied').length,
-    shortlisted: applications.filter(a => a.status === 'shortlisted').length,
-    interview_scheduled: applications.filter(a => a.status === 'interview_scheduled').length,
-    selected: applications.filter(a => a.status === 'selected').length
-  }
+  const tabs = [
+    { id: 'all', label: 'All' },
+    { id: 'applied', label: 'Applied' },
+    { id: 'shortlisted', label: 'Shortlisted' },
+    { id: 'interview_scheduled', label: 'Interview' },
+    { id: 'selected', label: 'Selected' }
+  ]
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-gray-500 text-lg">Loading applications...</div>
-      </div>
-    )
-  }
+  const tabCounts = tabs.reduce((acc, tab) => {
+    acc[tab.id] = tab.id === 'all' ? applications.length : applications.filter((app) => app.status === tab.id).length
+    return acc
+  }, {})
+
+  const filteredApplications = applications.filter((app) => selectedTab === 'all' || app.status === selectedTab)
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-4xl mx-auto px-4 py-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-8">My Applications</h1>
+    <main className="page-shell">
+      <div className="mx-auto w-full max-w-5xl">
+        <PageHeader
+          eyebrow="Pipeline"
+          title="Applications"
+          description="Follow each role from submission through selection without losing context."
+        />
 
-        <div className="bg-white rounded-lg shadow-md mb-6 flex overflow-x-auto">
-          {['all', 'applied', 'shortlisted', 'interview_scheduled', 'selected'].map((tab) => (
-            <button
-              key={tab}
-              onClick={() => setSelectedTab(tab)}
-              className={`px-4 py-3 font-medium whitespace-nowrap border-b-2 transition-colors ${
-                selectedTab === tab
-                  ? 'border-blue-600 text-blue-600'
-                  : 'border-transparent text-gray-600 hover:text-gray-900'
-              }`}
-            >
-              {tab.charAt(0).toUpperCase() + tab.slice(1).replace('_', ' ')} ({tabCounts[tab]})
-            </button>
-          ))}
+        <div className="mb-6 overflow-x-auto rounded-lg border border-card-border bg-white p-1 shadow-sm">
+          <div className="flex min-w-max gap-1">
+            {tabs.map((tab) => (
+              <button
+                key={tab.id}
+                type="button"
+                onClick={() => setSelectedTab(tab.id)}
+                className={`rounded-md px-4 py-2.5 text-sm font-semibold transition ${selectedTab === tab.id ? 'bg-primary text-white shadow-sm' : 'text-secondary-foreground hover:bg-secondary hover:text-foreground'}`}
+              >
+                {tab.label} <span className="ml-1 opacity-80">{tabCounts[tab.id]}</span>
+              </button>
+            ))}
+          </div>
         </div>
 
-        <div className="space-y-4">
-          {filteredApplications.length > 0 ? (
-            filteredApplications.map((app) => (
-              <div key={app.id} className="bg-white rounded-lg shadow-md p-6">
-                <div className="flex justify-between items-start mb-6">
-                  <div>
-                    <h3 className="text-xl font-bold text-gray-900">{app.role}</h3>
-                    <p className="text-gray-600">{app.company}</p>
-                    <p className="text-xs text-gray-500 mt-1">Applied on {new Date(app.applied_date).toLocaleDateString()}</p>
+        {filteredApplications.length > 0 ? (
+          <div className="space-y-4">
+            {filteredApplications.map((app) => (
+              <article key={app.id} className="section-card p-5 transition hover:border-primary/35 hover:shadow-md">
+                <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                  <div className="min-w-0">
+                    <h2 className="truncate text-xl font-bold text-foreground">{app.role}</h2>
+                    <p className="mt-1 text-sm font-medium text-secondary-foreground">{app.company}</p>
+                    <p className="mt-3 flex items-center gap-2 text-xs font-medium text-slate-500">
+                      <Calendar className="h-3.5 w-3.5" />
+                      Applied {new Date(app.applied_date).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
+                    </p>
                   </div>
                   <ApplicationStatusBadge status={app.status} />
                 </div>
 
-                {app.timeline && (
-                  <div className="relative mb-6">
-                    <div className="space-y-4">
-                      {app.timeline.map((item, idx) => (
-                        <div key={idx} className="flex gap-4">
-                          <div className="flex flex-col items-center">
-                            <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${
-                              item.completed ? 'bg-green-100 text-green-700' : 'bg-gray-200 text-gray-600'
-                            }`}>
-                              {item.completed ? '✓' : idx + 1}
-                            </div>
-                            {idx < app.timeline.length - 1 && (
-                              <div className={`w-0.5 h-12 ${item.completed ? 'bg-green-200' : 'bg-gray-200'}`}></div>
-                            )}
+                {app.timeline?.length > 0 && (
+                  <div className="mt-6 border-t border-secondary-border pt-5">
+                    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                      {app.timeline.map((item, index) => (
+                        <div key={`${item.stage}-${index}`} className={`rounded-lg border p-3 ${item.completed ? 'border-emerald-200 bg-emerald-50' : 'border-secondary-border bg-slate-50'}`}>
+                          <div className="flex items-center gap-2">
+                            <span className={`flex h-6 w-6 items-center justify-center rounded-full text-xs font-bold ${item.completed ? 'bg-emerald-600 text-white' : 'bg-slate-200 text-slate-600'}`}>
+                              {item.completed ? <Check className="h-3.5 w-3.5" /> : index + 1}
+                            </span>
+                            <p className="text-sm font-semibold text-foreground">{item.stage}</p>
                           </div>
-                          <div className="pb-4">
-                            <p className="font-semibold text-gray-900">{item.stage}</p>
-                            {item.date && (
-                              <p className="text-sm text-gray-600">{new Date(item.date).toLocaleDateString()}</p>
-                            )}
-                          </div>
+                          {item.date && <p className="mt-2 text-xs text-secondary-foreground">{new Date(item.date).toLocaleDateString()}</p>}
                         </div>
                       ))}
                     </div>
                   </div>
                 )}
-              </div>
-            ))
-          ) : (
-            <div className="text-center py-12 bg-white rounded-lg">
-              <p className="text-gray-500 font-medium">No applications in this category</p>
-            </div>
-          )}
-        </div>
+              </article>
+            ))}
+          </div>
+        ) : (
+          <EmptyState icon={Briefcase} title="No applications here" description="Applications in this status will appear here as your pipeline changes." />
+        )}
       </div>
-    </div>
+    </main>
   )
 }

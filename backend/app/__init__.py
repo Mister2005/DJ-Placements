@@ -49,4 +49,16 @@ def create_app():
         from app.seed import seed_data
         seed_data()
 
+        # Pre-index all jobs into Pinecone at startup (one-time LLM cost)
+        from app.models import Job
+        from app.services import get_job_matcher
+        jobs = Job.query.all()
+        if jobs:
+            matcher = get_job_matcher()
+            if not matcher._jobs_indexed:
+                print(f"[STARTUP] Indexing {len(jobs)} jobs into Pinecone...")
+                job_dicts = [j.to_dict() for j in jobs]
+                matcher.index_jobs(job_dicts)
+                print("[STARTUP] Jobs indexed.")
+
     return app

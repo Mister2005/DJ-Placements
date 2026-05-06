@@ -1,15 +1,29 @@
-import React, { useState, useEffect, useRef } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import React, { useEffect, useRef, useState } from 'react'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
+import { AnimatePresence, motion } from 'framer-motion'
+import { Bell, Briefcase, Calendar, ClipboardList, LayoutDashboard, LogOut, Menu, MessageSquare, User, X } from 'lucide-react'
 import { useAuthStore, useNotificationStore } from '../context/store'
 import { notificationService } from '../services/api'
 
 export default function Navbar() {
   const [isOpen, setIsOpen] = useState(false)
   const [showNotifs, setShowNotifs] = useState(false)
+  const [showProfileMenu, setShowProfileMenu] = useState(false)
+  const [scrolled, setScrolled] = useState(false)
+
   const { user, logout } = useAuthStore()
   const navigate = useNavigate()
+  const location = useLocation()
   const { notifications, setNotifications } = useNotificationStore()
   const notifRef = useRef(null)
+  const profileRef = useRef(null)
+
+  useEffect(() => {
+    const handleScroll = () => setScrolled(window.scrollY > 8)
+    handleScroll()
+    window.addEventListener('scroll', handleScroll)
+    return () => window.removeEventListener('scroll', handleScroll)
+  }, [])
 
   useEffect(() => {
     const fetchNotifs = async () => {
@@ -21,17 +35,24 @@ export default function Navbar() {
       }
     }
     if (user) fetchNotifs()
-  }, [user])
+  }, [user, setNotifications])
 
   useEffect(() => {
-    const handleClickOutside = (e) => {
-      if (notifRef.current && !notifRef.current.contains(e.target)) {
-        setShowNotifs(false)
-      }
+    const handleClickOutside = (event) => {
+      if (notifRef.current && !notifRef.current.contains(event.target)) setShowNotifs(false)
+      if (profileRef.current && !profileRef.current.contains(event.target)) setShowProfileMenu(false)
     }
     document.addEventListener('mousedown', handleClickOutside)
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
+
+  const navLinks = [
+    { name: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
+    { name: 'Jobs', path: '/jobs', icon: Briefcase },
+    { name: 'Applications', path: '/applications', icon: ClipboardList },
+    { name: 'Deadlines', path: '/deadlines', icon: Calendar },
+    { name: 'Community', path: '/community', icon: MessageSquare },
+  ]
 
   const handleLogout = () => {
     logout()
@@ -42,139 +63,232 @@ export default function Navbar() {
   const handleMarkRead = async (id) => {
     try {
       await notificationService.markAsRead(id)
-      setNotifications(notifications.map(n => n.id === id ? { ...n, is_read: true } : n))
+      setNotifications(notifications.map((notification) => (
+        notification.id === id ? { ...notification, is_read: true } : notification
+      )))
     } catch (err) {
-      console.error('Failed to mark as read')
+      console.error('Failed to mark notification as read')
     }
   }
 
-  const unreadCount = notifications.filter(n => !n.is_read).length
+  const unreadCount = notifications.filter((notification) => !notification.is_read).length
+  const firstName = user?.name?.split(' ')[0] || 'Student'
 
   return (
-    <nav className="sticky top-0 z-40 bg-white shadow-md">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between h-16">
-          <div className="flex items-center">
-            <Link to="/dashboard" className="flex items-center gap-2">
-              <div className="w-8 h-8 bg-gradient-to-r from-blue-600 to-blue-800 rounded-lg flex items-center justify-center">
-                <span className="text-white font-bold">P</span>
-              </div>
-              <span className="font-bold text-lg text-gray-900">PlaceHub</span>
-            </Link>
-          </div>
+    <motion.nav
+      initial={{ y: -16, opacity: 0 }}
+      animate={{ y: 0, opacity: 1 }}
+      transition={{ duration: 0.18 }}
+      className={`glass-nav fixed inset-x-0 top-0 z-50 border-b transition ${scrolled ? 'border-secondary-border' : 'border-transparent'}`}
+    >
+      <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
+        <div className="flex items-center gap-6">
+          <Link to="/dashboard" className="flex items-center gap-3 rounded-lg" aria-label="PlaceHub dashboard">
+            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary text-sm font-bold text-white shadow-sm">PH</div>
+            <div className="hidden sm:block">
+              <p className="text-sm font-bold leading-none text-foreground">PlaceHub</p>
+              <p className="mt-0.5 text-[11px] font-medium text-secondary-foreground">Placement OS</p>
+            </div>
+          </Link>
 
           {user && (
-            <>
-              <div className="hidden md:flex items-center gap-8">
-                <Link to="/jobs" className="text-gray-600 hover:text-gray-900">Jobs</Link>
-                <Link to="/deadlines" className="text-gray-600 hover:text-gray-900">Deadlines</Link>
-                <Link to="/applications" className="text-gray-600 hover:text-gray-900">Applications</Link>
-                <Link to="/community" className="text-gray-600 hover:text-gray-900">Community</Link>
-              </div>
-
-              <div className="flex items-center gap-4">
-                {/* Notification Bell */}
-                <div className="relative" ref={notifRef}>
-                  <button
-                    onClick={() => setShowNotifs(!showNotifs)}
-                    className="relative p-2 text-gray-600 hover:text-gray-900"
+            <div className="hidden items-center gap-1 lg:flex">
+              {navLinks.map((link) => {
+                const isActive = location.pathname.startsWith(link.path)
+                const Icon = link.icon
+                return (
+                  <Link
+                    key={link.path}
+                    to={link.path}
+                    className={`nav-chip ${isActive ? 'nav-chip-active' : 'nav-chip-idle'}`}
                   >
-                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
-                    </svg>
-                    {unreadCount > 0 && (
-                      <span className="absolute top-0 right-0 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
-                        {unreadCount}
-                      </span>
-                    )}
-                  </button>
+                    <Icon className="h-4 w-4" />
+                    {link.name}
+                  </Link>
+                )
+              })}
+            </div>
+          )}
+        </div>
 
-                  {showNotifs && (
-                    <div className="absolute right-0 mt-2 w-80 bg-white rounded-lg shadow-xl border border-gray-200 z-50 max-h-96 overflow-y-auto">
-                      <div className="p-3 border-b bg-gray-50 rounded-t-lg">
-                        <h3 className="font-semibold text-gray-900">Notifications</h3>
+        {user && (
+          <div className="flex items-center gap-2">
+            <div className="relative" ref={notifRef}>
+              <button
+                type="button"
+                onClick={() => setShowNotifs(!showNotifs)}
+                className="relative inline-flex h-10 w-10 items-center justify-center rounded-lg border border-secondary-border bg-white/70 text-secondary-foreground transition hover:bg-secondary hover:text-foreground"
+                aria-label={`Notifications${unreadCount ? `, ${unreadCount} unread` : ''}`}
+              >
+                <Bell className="h-5 w-5" />
+                {unreadCount > 0 && (
+                  <span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-red-600 px-1 text-[10px] font-bold text-white">
+                    {unreadCount > 9 ? '9+' : unreadCount}
+                  </span>
+                )}
+              </button>
+
+              <AnimatePresence>
+                {showNotifs && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: 8 }}
+                    transition={{ duration: 0.16 }}
+                    className="command-surface absolute right-0 mt-2 w-[min(24rem,calc(100vw-2rem))] overflow-hidden shadow-xl"
+                  >
+                    <div className="flex items-center justify-between border-b border-secondary-border px-4 py-3">
+                      <div>
+                        <h3 className="text-sm font-semibold text-foreground">Notifications</h3>
+                        <p className="text-xs text-secondary-foreground">{unreadCount ? `${unreadCount} unread update${unreadCount === 1 ? '' : 's'}` : 'No unread updates'}</p>
                       </div>
+                    </div>
+                    <div className="max-h-[60vh] overflow-y-auto p-2">
                       {notifications.length > 0 ? (
-                        <div>
-                          {notifications.map((notif) => (
-                            <div
-                              key={notif.id}
-                              className={`p-3 border-b hover:bg-gray-50 cursor-pointer ${!notif.is_read ? 'bg-blue-50' : ''}`}
-                              onClick={() => handleMarkRead(notif.id)}
-                            >
-                              <div className="flex items-start gap-2">
-                                <span className="text-lg">
-                                  {notif.type === 'job' ? '💼' : notif.type === 'application' ? '📋' : notif.type === 'deadline' ? '⏰' : '🔔'}
-                                </span>
-                                <div className="flex-1 min-w-0">
-                                  <p className={`text-sm ${!notif.is_read ? 'font-semibold text-gray-900' : 'text-gray-700'}`}>
-                                    {notif.title}
-                                  </p>
-                                  <p className="text-xs text-gray-500 mt-0.5 truncate">{notif.message}</p>
-                                  <p className="text-xs text-gray-400 mt-1">{new Date(notif.created_at).toLocaleString()}</p>
-                                </div>
-                                {!notif.is_read && (
-                                  <span className="w-2 h-2 bg-blue-500 rounded-full mt-1.5 flex-shrink-0"></span>
-                                )}
+                        notifications.map((notification) => (
+                          <button
+                            key={notification.id}
+                            type="button"
+                            onClick={() => handleMarkRead(notification.id)}
+                            className={`mb-1 w-full rounded-lg border p-3 text-left transition last:mb-0 ${notification.is_read ? 'border-transparent hover:bg-secondary' : 'border-blue-200 bg-blue-50 hover:bg-blue-100'}`}
+                          >
+                            <div className="flex gap-3">
+                              <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-white text-primary">
+                                {notification.type === 'application' ? <ClipboardList className="h-4 w-4" /> : notification.type === 'deadline' ? <Calendar className="h-4 w-4" /> : <Briefcase className="h-4 w-4" />}
+                              </div>
+                              <div className="min-w-0">
+                                <p className="truncate text-sm font-semibold text-foreground">{notification.title}</p>
+                                <p className="mt-1 line-clamp-2 text-xs leading-5 text-secondary-foreground">{notification.message}</p>
+                                <p className="mt-2 text-[11px] font-medium text-slate-500">{new Date(notification.created_at).toLocaleDateString()}</p>
                               </div>
                             </div>
-                          ))}
-                        </div>
+                          </button>
+                        ))
                       ) : (
-                        <div className="p-6 text-center text-gray-500 text-sm">
-                          No notifications yet
+                        <div className="px-6 py-10 text-center">
+                          <Bell className="mx-auto h-8 w-8 text-slate-300" />
+                          <p className="mt-3 text-sm font-medium text-foreground">Nothing needs your attention</p>
+                          <p className="mt-1 text-xs text-secondary-foreground">Application and deadline updates will appear here.</p>
                         </div>
                       )}
                     </div>
-                  )}
-                </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
 
-                <div className="flex items-center gap-2">
-                  <img
-                    src={`https://ui-avatars.com/api/?name=${user?.name}`}
-                    alt={user?.name}
-                    className="w-8 h-8 rounded-full"
-                  />
-                  <div className="hidden sm:block">
-                    <p className="text-sm font-medium text-gray-900">{user?.name}</p>
-                  </div>
-                </div>
-
-                <Link to="/profile" className="text-gray-600 hover:text-gray-900">
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                  </svg>
-                </Link>
-
-                <button
-                  onClick={handleLogout}
-                  className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 text-sm"
-                >
-                  Logout
-                </button>
-              </div>
-
-              <button className="md:hidden p-2" onClick={() => setIsOpen(!isOpen)}>
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-                </svg>
+            <div className="relative" ref={profileRef}>
+              <button
+                type="button"
+                onClick={() => setShowProfileMenu(!showProfileMenu)}
+                className="hidden items-center gap-2 rounded-lg border border-secondary-border bg-white/70 py-1.5 pl-2.5 pr-2 transition hover:bg-secondary sm:flex"
+              >
+                <span className="max-w-28 truncate text-sm font-semibold text-foreground">{firstName}</span>
+                <img
+                  src={`https://ui-avatars.com/api/?name=${encodeURIComponent(user?.name || 'Student')}&background=2557d6&color=fff`}
+                  alt=""
+                  className="h-7 w-7 rounded-lg"
+                />
               </button>
-            </>
-          )}
-        </div>
+
+              <AnimatePresence>
+                {showProfileMenu && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: 8 }}
+                    transition={{ duration: 0.16 }}
+                    className="command-surface absolute right-0 mt-2 w-64 overflow-hidden shadow-xl"
+                  >
+                    <div className="border-b border-secondary-border px-4 py-3">
+                      <p className="truncate text-sm font-semibold text-foreground">{user?.name}</p>
+                      <p className="mt-0.5 truncate text-xs text-secondary-foreground">{user?.email}</p>
+                    </div>
+                    <div className="p-2">
+                      <Link
+                        to="/profile"
+                        onClick={() => setShowProfileMenu(false)}
+                        className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-secondary-foreground transition hover:bg-secondary hover:text-foreground"
+                      >
+                        <User className="h-4 w-4" /> Profile settings
+                      </Link>
+                      <button
+                        type="button"
+                        onClick={handleLogout}
+                        className="mt-1 flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-red-700 transition hover:bg-red-50"
+                      >
+                        <LogOut className="h-4 w-4" /> Sign out
+                      </button>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+
+            <button
+              type="button"
+              className="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-secondary-border bg-white/70 text-secondary-foreground transition hover:bg-secondary hover:text-foreground lg:hidden"
+              onClick={() => setIsOpen(true)}
+              aria-label="Open navigation"
+            >
+              <Menu className="h-5 w-5" />
+            </button>
+          </div>
+        )}
       </div>
 
-      {isOpen && user && (
-        <div className="md:hidden bg-gray-50 border-t">
-          <div className="px-2 pt-2 pb-3 space-y-1">
-            <Link to="/jobs" className="block px-3 py-2 rounded-md text-gray-600 hover:bg-gray-200">Jobs</Link>
-            <Link to="/deadlines" className="block px-3 py-2 rounded-md text-gray-600 hover:bg-gray-200">Deadlines</Link>
-            <Link to="/applications" className="block px-3 py-2 rounded-md text-gray-600 hover:bg-gray-200">Applications</Link>
-            <Link to="/community" className="block px-3 py-2 rounded-md text-gray-600 hover:bg-gray-200">Community</Link>
-            <Link to="/profile" className="block px-3 py-2 rounded-md text-gray-600 hover:bg-gray-200">Profile</Link>
-          </div>
-        </div>
-      )}
-    </nav>
+      <AnimatePresence>
+        {isOpen && user && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-40 bg-slate-950/35 backdrop-blur-sm lg:hidden"
+              onClick={() => setIsOpen(false)}
+            />
+            <motion.aside
+              initial={{ x: '100%' }}
+              animate={{ x: 0 }}
+              exit={{ x: '100%' }}
+              transition={{ duration: 0.2 }}
+              className="fixed inset-y-0 right-0 z-50 w-[min(22rem,90vw)] border-l border-card-border bg-white p-4 shadow-xl lg:hidden"
+            >
+              <div className="mb-5 flex items-center justify-between border-b border-secondary-border pb-4">
+                <div>
+                  <p className="font-bold text-foreground">PlaceHub</p>
+                  <p className="text-xs text-secondary-foreground">{user?.email}</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setIsOpen(false)}
+                  className="rounded-lg p-2 text-secondary-foreground transition hover:bg-secondary hover:text-foreground"
+                  aria-label="Close navigation"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+              <div className="space-y-1">
+                {navLinks.map((link) => {
+                  const isActive = location.pathname.startsWith(link.path)
+                  const Icon = link.icon
+                  return (
+                    <Link
+                      key={link.path}
+                      to={link.path}
+                      onClick={() => setIsOpen(false)}
+                      className={`flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-semibold transition ${isActive ? 'bg-primary text-white' : 'text-secondary-foreground hover:bg-secondary hover:text-foreground'}`}
+                    >
+                      <Icon className="h-4 w-4" />
+                      {link.name}
+                    </Link>
+                  )
+                })}
+              </div>
+            </motion.aside>
+          </>
+        )}
+      </AnimatePresence>
+    </motion.nav>
   )
 }

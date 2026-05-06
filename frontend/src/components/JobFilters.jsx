@@ -1,88 +1,101 @@
 import React from 'react'
+import { Briefcase, FilterX, MapPin, Search } from 'lucide-react'
 
-export function JobFilters({ filters, onFilterChange, domains, locations, autoMatch, onAutoMatchToggle, autoMatchLoading }) {
+export function JobFilters({ filters, onFilterChange, domains, locations }) {
+  const hasFilters = filters.search || filters.domain || filters.location || filters.jobType
+
   return (
-    <div className="bg-white rounded-lg shadow-md p-6 space-y-4">
-      <h3 className="font-bold text-lg text-gray-900">Filters</h3>
+    <aside className="command-surface p-5">
+      <div className="mb-5 flex items-center justify-between border-b border-secondary-border pb-4">
+        <div>
+          <h3 className="text-base font-bold text-foreground">Refine jobs</h3>
+          <p className="mt-1 text-xs text-secondary-foreground">Narrow by role, domain, and location.</p>
+        </div>
+        {hasFilters && (
+          <button
+            type="button"
+            onClick={() => onFilterChange({})}
+            className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-semibold text-secondary-foreground transition hover:bg-secondary hover:text-foreground"
+          >
+            <FilterX className="h-3.5 w-3.5" /> Reset
+          </button>
+        )}
+      </div>
 
-      {/* AI Auto Match Toggle */}
-      <div className="p-3 bg-purple-50 border border-purple-200 rounded-lg">
-        <label className="flex items-center gap-3 cursor-pointer">
-          <input
-            type="checkbox"
-            checked={autoMatch}
-            onChange={onAutoMatchToggle}
-            disabled={autoMatchLoading}
-            className="w-4 h-4 rounded text-purple-600 focus:ring-purple-500"
-          />
-          <div>
-            <span className="text-sm font-semibold text-purple-900 flex items-center gap-1">
-              🤖 AI Auto Match
-              {autoMatchLoading && <span className="animate-spin text-xs">⚙️</span>}
-            </span>
-            <p className="text-xs text-purple-600 mt-0.5">Rank jobs by profile match</p>
+      <div className="space-y-5">
+        <div>
+          <label className="field-label" htmlFor="job-search">Search</label>
+          <div className="relative">
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+            <input
+              id="job-search"
+              type="text"
+              placeholder="Company, role, or skill"
+              value={filters.search || ''}
+              onChange={(event) => onFilterChange({ ...filters, search: event.target.value })}
+              className="field-input pl-9"
+            />
           </div>
-        </label>
-      </div>
+        </div>
 
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">Search</label>
-        <input
-          type="text"
-          placeholder="Company, Role, or Skill"
-          value={filters.search || ''}
-          onChange={(e) => onFilterChange({ ...filters, search: e.target.value })}
-          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-        />
-      </div>
-
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">Domain</label>
-        <select
+        <SelectField
+          id="domain"
+          label="Domain"
+          icon={Briefcase}
           value={filters.domain || ''}
-          onChange={(e) => onFilterChange({ ...filters, domain: e.target.value })}
-          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-        >
-          <option value="">All Domains</option>
-          {domains?.map((domain) => (
-            <option key={domain} value={domain}>{domain}</option>
-          ))}
-        </select>
-      </div>
+          onChange={(value) => onFilterChange({ ...filters, domain: value })}
+          options={domains}
+          emptyLabel="All domains"
+        />
 
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">Location</label>
-        <select
+        <SelectField
+          id="location"
+          label="Location"
+          icon={MapPin}
           value={filters.location || ''}
-          onChange={(e) => onFilterChange({ ...filters, location: e.target.value })}
-          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+          onChange={(value) => onFilterChange({ ...filters, location: value })}
+          options={locations}
+          emptyLabel="All locations"
+        />
+
+        <div>
+          <p className="field-label">Job type</p>
+          <div className="grid grid-cols-2 gap-2 rounded-lg border border-secondary-border bg-white/50 p-1">
+            {['Full-time', 'Internship'].map((type) => (
+              <button
+                key={type}
+                type="button"
+                onClick={() => onFilterChange({ ...filters, jobType: filters.jobType === type ? '' : type })}
+                className={`rounded-md px-3 py-2 text-sm font-semibold transition ${filters.jobType === type ? 'bg-white text-primary shadow-sm' : 'text-secondary-foreground hover:text-foreground'}`}
+              >
+                {type}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+    </aside>
+  )
+}
+
+function SelectField({ id, label, icon: Icon, value, onChange, options, emptyLabel }) {
+  return (
+    <div>
+      <label className="field-label" htmlFor={id}>{label}</label>
+      <div className="relative">
+        <Icon className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+        <select
+          id={id}
+          value={value}
+          onChange={(event) => onChange(event.target.value)}
+          className="field-input appearance-none pl-9"
         >
-          <option value="">All Locations</option>
-          {locations?.map((location) => (
-            <option key={location} value={location}>{location}</option>
+          <option value="">{emptyLabel}</option>
+          {options?.map((option) => (
+            <option key={option} value={option}>{option}</option>
           ))}
         </select>
       </div>
-
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">Job Type</label>
-        <select
-          value={filters.jobType || ''}
-          onChange={(e) => onFilterChange({ ...filters, jobType: e.target.value })}
-          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-        >
-          <option value="">All Types</option>
-          <option value="Full-time">Full-time</option>
-          <option value="Internship">Internship</option>
-        </select>
-      </div>
-
-      <button
-        onClick={() => onFilterChange({})}
-        className="w-full px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors font-medium"
-      >
-        Clear Filters
-      </button>
     </div>
   )
 }
