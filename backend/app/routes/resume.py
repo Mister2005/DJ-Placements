@@ -50,15 +50,8 @@ def parse_resume():
     # Extract profile info (name, phone, cgpa, branch) via LLM
     profile_info = _extract_profile_info(resume_text)
 
-    # Merge skills (additive — never removes user's manual skills)
-    existing_lower = set(s.lower() for s in (user.skills or []))
-    new_skills = list(user.skills or [])
-    for skill in extracted_skills:
-        if skill.lower() not in existing_lower:
-            new_skills.append(skill)
-            existing_lower.add(skill.lower())
-
-    user.skills = new_skills
+    # Replace skills entirely with what AI extracted (fresh start)
+    user.skills = extracted_skills
 
     # Auto-fill profile fields if found in resume and currently empty
     if profile_info.get("name") and not user.name.strip():
@@ -84,7 +77,7 @@ def parse_resume():
         "parsed": True,
         "resume_text_preview": resume_text[:500] if resume_text else "",
         "extracted_skills": extracted_skills,
-        "all_skills": new_skills,
+        "all_skills": extracted_skills,
         "profile_info": profile_info,
     }), 200
 
