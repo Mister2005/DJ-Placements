@@ -57,11 +57,11 @@ export default function DashboardPage() {
   return (
     <main className="page-shell">
       <div className="page-container">
-        <section className="command-surface mb-8 p-6 sm:p-8">
-          <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_360px] lg:items-end">
+        <section className="command-surface mb-8 p-5 sm:p-6">
+          <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_340px] lg:items-center">
             <div>
-              <p className="ambient-label mb-5"><Radar className="h-3.5 w-3.5" /> Placement command</p>
-              <h1 className="text-4xl font-bold tracking-tight text-foreground md:text-6xl">
+              <p className="ambient-label mb-4"><Radar className="h-3.5 w-3.5" /> Placement command</p>
+              <h1 className="max-w-3xl text-4xl font-bold leading-tight tracking-tight text-foreground md:text-5xl">
                 {firstName}, your next move is visible.
               </h1>
               <p className="mt-4 max-w-2xl text-base leading-7 text-secondary-foreground">
@@ -73,7 +73,7 @@ export default function DashboardPage() {
               </div>
             </div>
 
-            <div className="rounded-lg border border-card-border bg-white/70 p-4">
+            <div className="soft-panel p-4">
               <div className="mb-4 flex items-center justify-between">
                 <p className="text-sm font-semibold text-foreground">Readiness stack</p>
                 <span className="status-pill border-blue-200 bg-blue-50 text-blue-700">Live</span>
@@ -88,7 +88,7 @@ export default function DashboardPage() {
                   <div key={label}>
                     <div className="mb-1 flex items-center justify-between text-xs font-semibold text-secondary-foreground">
                       <span>{label}</span>
-                      <span>{value}</span>
+                      <span className="text-foreground">{value}</span>
                     </div>
                     <div className="h-2 overflow-hidden rounded-full bg-white/10">
                       <div className="h-full rounded-full bg-primary" style={{ width: `${Math.min(100, 22 + value * 12)}%` }} />

@@ -9,12 +9,9 @@ import {
   CheckCircle2,
   Eye,
   EyeOff,
-  FileSearch,
   Gauge,
-  Layers3,
   Loader2,
   RadioTower,
-  Sparkles,
   Target,
 } from 'lucide-react'
 import { useAuthStore } from '../context/store'
@@ -58,29 +55,29 @@ export default function LoginPage() {
         <section className="login-showcase hidden border-r border-secondary-border p-8 lg:flex lg:flex-col">
           <div className="flex items-center justify-between">
             <BrandLogo />
-            <div className="flex items-center gap-2 rounded-full border border-secondary-border bg-white/60 px-3 py-1.5 text-xs font-semibold text-secondary-foreground">
+            <div className="soft-panel flex items-center gap-2 px-3 py-1.5 text-xs font-semibold text-secondary-foreground">
               <RadioTower className="h-3.5 w-3.5 text-primary" /> Live placement desk
             </div>
           </div>
 
-          <div className="mt-10 grid flex-1 grid-rows-[auto_1fr_auto] gap-6">
-            <div className="grid gap-7 xl:grid-cols-[0.92fr_1.08fr] xl:items-center">
-              <div>
+          <div className="mt-8 grid flex-1 grid-rows-[auto_auto_1fr] gap-5">
+            <div className="grid gap-5 xl:grid-cols-[0.92fr_1.08fr] xl:items-stretch">
+              <div className="login-copy-card">
                 <p className="ambient-label">Rolewise OS</p>
-                <h1 className="mt-5 max-w-lg text-5xl font-bold leading-[0.96] text-foreground">
-                  See every role, deadline, and decision path at once.
+                <h1 className="mt-5 max-w-lg text-4xl font-bold leading-[1.02] tracking-tight text-foreground">
+                  Smooth control for every placement move.
                 </h1>
-                <p className="mt-5 max-w-md text-base leading-7 text-secondary-foreground">
-                  A glass command center for matching jobs, tracking applications, and acting before opportunities close.
+                <p className="mt-4 max-w-md text-base leading-7 text-secondary-foreground">
+                  Rolewise keeps opportunities, deadlines, and application progress in one calm command surface.
                 </p>
               </div>
 
-              <PlacementIntelligence />
+              <PlacementSummary />
             </div>
 
             <PipelineBoard />
 
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-3 gap-3 self-end">
               {[
                 ['Match score', '92%', Target],
                 ['Open deadlines', '4', CalendarClock],
@@ -172,33 +169,50 @@ export default function LoginPage() {
   )
 }
 
-function PlacementIntelligence() {
-  const nodes = [
-    { label: 'Resume', icon: FileSearch, className: 'left-[7%] top-[18%]' },
-    { label: 'Roles', icon: BriefcaseBusiness, className: 'right-[8%] top-[20%]' },
-    { label: 'Alerts', icon: Bell, className: 'bottom-[14%] left-[13%]' },
-    { label: 'Rounds', icon: Layers3, className: 'bottom-[16%] right-[10%]' },
+function PlacementSummary() {
+  const rows = [
+    ['Resume fit', '92%', 'w-[92%]'],
+    ['Deadline cover', '4 open', 'w-[68%]'],
+    ['Interview prep', '2 rounds', 'w-[54%]'],
   ]
 
   return (
-    <div className="placement-orbit min-h-[300px]">
-      <div className="orbit-ring orbit-ring-lg" />
-      <div className="orbit-ring orbit-ring-md" />
-      <div className="orbit-scan" />
-
-      <div className="orbit-core">
-        <Sparkles className="h-5 w-5 text-primary" />
-        <p className="mt-3 text-xs font-semibold uppercase tracking-[0.16em] text-secondary-foreground">Best fit</p>
-        <p className="mt-1 text-4xl font-bold text-foreground">92%</p>
-        <p className="mt-2 text-xs text-secondary-foreground">3 priority roles detected</p>
-      </div>
-
-      {nodes.map(({ label, icon: Icon, className }) => (
-        <div key={label} className={`orbit-node ${className}`}>
-          <Icon className="h-4 w-4" />
-          <span>{label}</span>
+    <div className="placement-orbit min-h-[270px] p-5">
+      <div className="relative z-10 flex h-full flex-col justify-between">
+        <div className="flex items-start justify-between">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-secondary-foreground">Command preview</p>
+            <p className="mt-2 text-3xl font-bold text-foreground">92%</p>
+            <p className="mt-1 text-sm text-secondary-foreground">Best-fit role confidence</p>
+          </div>
+          <div className="soft-panel px-3 py-2 text-xs font-bold text-blue-700">3 priority roles</div>
         </div>
-      ))}
+
+        <div className="space-y-4">
+          {rows.map(([label, value, width]) => (
+            <div key={label}>
+              <div className="mb-2 flex items-center justify-between text-xs font-semibold text-secondary-foreground">
+                <span>{label}</span>
+                <span className="text-foreground">{value}</span>
+              </div>
+              <div className="h-2 overflow-hidden rounded-full bg-white/10">
+                <div className={`h-full rounded-full bg-primary ${width}`} />
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <div className="grid grid-cols-2 gap-3">
+          <div className="soft-panel p-3">
+            <p className="text-xs text-secondary-foreground">Next action</p>
+            <p className="mt-1 text-sm font-bold text-foreground">Apply before Friday</p>
+          </div>
+          <div className="soft-panel p-3">
+            <p className="text-xs text-secondary-foreground">Profile gap</p>
+            <p className="mt-1 text-sm font-bold text-foreground">Add SQL project</p>
+          </div>
+        </div>
+      </div>
     </div>
   )
 }
@@ -223,7 +237,7 @@ function PipelineBoard() {
         </span>
       </div>
 
-      <div className="mt-5 grid grid-cols-4 gap-3">
+      <div className="mt-4 grid grid-cols-4 gap-3">
         {stages.map((stage, index) => (
           <div key={stage.label} className="pipeline-stage">
             <div className={`pipeline-dot ${stage.active ? 'pipeline-dot-active' : ''}`}>{index + 1}</div>
@@ -233,12 +247,12 @@ function PipelineBoard() {
         ))}
       </div>
 
-      <div className="mt-5 grid grid-cols-[1fr_auto] gap-3">
-        <div className="rounded-lg border border-secondary-border bg-white/60 p-3">
+      <div className="mt-4 grid grid-cols-[1fr_auto] gap-3">
+        <div className="soft-panel p-3">
           <p className="text-xs font-semibold text-secondary-foreground">Next deadline</p>
           <p className="mt-1 text-sm font-bold text-foreground">Data Analyst Intern - 22 hours</p>
         </div>
-        <div className="flex items-center rounded-lg border border-blue-200 bg-blue-50 px-3 text-sm font-bold text-blue-700">
+        <div className="soft-panel flex items-center px-3 text-sm font-bold text-blue-700">
           Act now
         </div>
       </div>
