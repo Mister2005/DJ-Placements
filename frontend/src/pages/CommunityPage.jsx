@@ -67,7 +67,7 @@ export default function CommunityPage() {
 
   return (
     <main className="page-shell">
-      <div className="mx-auto w-full max-w-4xl">
+      <div className="mx-auto w-full">
         <PageHeader
           eyebrow="Community"
           title="Placement forum"

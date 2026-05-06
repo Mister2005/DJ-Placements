@@ -31,7 +31,7 @@ export default function DeadlinesPage() {
 
   return (
     <main className="page-shell">
-      <div className="mx-auto w-full max-w-5xl">
+      <div className="mx-auto w-full">
         <PageHeader
           eyebrow="Time-sensitive"
           title="Application deadlines"

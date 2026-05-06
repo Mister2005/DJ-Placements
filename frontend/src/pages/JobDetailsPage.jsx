@@ -63,7 +63,7 @@ export default function JobDetailsPage() {
 
   return (
     <main className="page-shell">
-      <div className="mx-auto w-full max-w-6xl">
+      <div className="mx-auto w-full">
         <button type="button" onClick={() => navigate(-1)} className="mb-5 inline-flex items-center gap-2 rounded-lg px-2 py-2 text-sm font-semibold text-secondary-foreground transition hover:bg-secondary hover:text-foreground">
           <ArrowLeft className="h-4 w-4" /> Back
         </button>

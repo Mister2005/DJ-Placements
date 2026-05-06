@@ -42,7 +42,7 @@ export default function ApplicationsPage() {
 
   return (
     <main className="page-shell">
-      <div className="mx-auto w-full max-w-5xl">
+      <div className="mx-auto w-full">
         <PageHeader
           eyebrow="Pipeline"
           title="Applications"

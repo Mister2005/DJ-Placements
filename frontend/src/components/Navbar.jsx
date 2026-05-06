@@ -82,7 +82,7 @@ export default function Navbar() {
       transition={{ duration: 0.18 }}
       className={`glass-nav fixed inset-x-0 top-0 z-50 border-b transition ${scrolled ? 'border-secondary-border' : 'border-transparent'}`}
     >
-      <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
+      <div className="mx-auto flex h-16 w-full items-center justify-between px-4 sm:px-6 lg:px-8">
         <div className="flex items-center gap-6">
           <Link to="/dashboard" className="flex items-center gap-3 rounded-lg" aria-label="Rolewise dashboard">
             <BrandLogo compact />
