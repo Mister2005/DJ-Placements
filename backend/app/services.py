@@ -12,27 +12,19 @@ import os
 from app.interfaces import TextExtractor, SkillExtractor, EmbeddingProvider, VectorStore, JobMatcher
 from app.extractors import PdfTextExtractor, LLMSkillExtractor
 from app.embeddings import LLMEnhancedEmbeddingProvider
-from app.vector_store import PineconeVectorStore, InMemoryVectorStore
+from app.vector_store import PineconeVectorStore
 from app.matcher import HybridJobMatcher
 
 
 def _create_vector_store() -> VectorStore:
-    """
-    Factory: creates Pinecone store if credentials exist, else falls back to in-memory.
-    This is NOT a fallback in the data sense — it's a deployment flexibility choice.
-    """
+    """Creates Pinecone store. No fallback — Pinecone is required."""
     api_key = os.getenv("PINECONE_API_KEY", "")
     host = os.getenv("PINECONE_HOST", "")
 
-    if api_key and host:
-        try:
-            store = PineconeVectorStore()
-            return store
-        except Exception as e:
-            print(f"[WARN] Pinecone unavailable ({e}), using in-memory vector store")
-            return InMemoryVectorStore()
-    else:
-        return InMemoryVectorStore()
+    if not api_key or not host:
+        raise ValueError("PINECONE_API_KEY and PINECONE_HOST are required")
+
+    return PineconeVectorStore()
 
 
 def _create_skill_extractor() -> SkillExtractor:
