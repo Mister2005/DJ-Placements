@@ -112,6 +112,15 @@ def auto_match_jobs():
     results = []
     for job_dict in job_dicts:
         job_dict["match_score"] = scores.get(job_dict["id"], 0)
+        # Also compute direct skill match for display
+        user_skills_lower = set(s.lower() for s in (user.skills or []))
+        job_skills = job_dict.get("skills", [])
+        matched = [s for s in job_skills if s.lower() in user_skills_lower]
+        missing = [s for s in job_skills if s.lower() not in user_skills_lower]
+        total = len(job_skills)
+        job_dict["skill_match_pct"] = int((len(matched) / total) * 100) if total > 0 else 0
+        job_dict["matched_skills"] = matched
+        job_dict["missing_skills"] = missing
         results.append(job_dict)
 
     results.sort(key=lambda x: x["match_score"], reverse=True)

@@ -48,18 +48,41 @@ export function JobCard({ job, isSaved, onSave, onApply, matchScore }) {
         )}
       </div>
 
+      {/* Skills with tick/cross when match data available */}
       <div className="mb-4">
         <p className="text-xs font-semibold text-gray-700 mb-2">Required Skills:</p>
-        <div className="flex flex-wrap gap-2">
-          {job.skills?.slice(0, 4).map((skill, idx) => (
-            <span key={idx} className="px-2 py-1 bg-blue-100 text-blue-600 text-xs rounded-full">
-              {skill}
-            </span>
-          ))}
-          {job.skills?.length > 4 && (
-            <span className="px-2 py-1 bg-gray-100 text-gray-600 text-xs rounded-full">
-              +{job.skills.length - 4} more
-            </span>
+        <div className="flex flex-wrap gap-1.5">
+          {job.matched_skills && job.missing_skills ? (
+            <>
+              {job.matched_skills.map((skill, idx) => (
+                <span key={`m-${idx}`} className="px-2 py-1 bg-green-100 text-green-700 text-xs rounded-full flex items-center gap-1">
+                  <span className="font-bold">✓</span> {skill}
+                </span>
+              ))}
+              {job.missing_skills.slice(0, 3).map((skill, idx) => (
+                <span key={`x-${idx}`} className="px-2 py-1 bg-red-100 text-red-700 text-xs rounded-full flex items-center gap-1">
+                  <span className="font-bold">✗</span> {skill}
+                </span>
+              ))}
+              {job.missing_skills.length > 3 && (
+                <span className="px-2 py-1 bg-gray-100 text-gray-600 text-xs rounded-full">
+                  +{job.missing_skills.length - 3} more
+                </span>
+              )}
+            </>
+          ) : (
+            <>
+              {job.skills?.slice(0, 4).map((skill, idx) => (
+                <span key={idx} className="px-2 py-1 bg-blue-100 text-blue-600 text-xs rounded-full">
+                  {skill}
+                </span>
+              ))}
+              {job.skills?.length > 4 && (
+                <span className="px-2 py-1 bg-gray-100 text-gray-600 text-xs rounded-full">
+                  +{job.skills.length - 4} more
+                </span>
+              )}
+            </>
           )}
         </div>
       </div>

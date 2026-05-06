@@ -2,17 +2,17 @@ import React from 'react'
 
 export function SkillMatcher({ matchPercentage, matchedSkills, missingSkills }) {
   return (
-    <div className="bg-gradient-to-r from-blue-50 to-cyan-50 rounded-lg p-6 border border-blue-200">
-      <h4 className="font-bold text-lg text-gray-900 mb-4">AI Skill Matching</h4>
+    <div className="bg-gray-50 rounded-lg p-6 border border-gray-200">
+      <h4 className="font-bold text-lg text-gray-900 mb-4">Skill Match</h4>
 
       <div className="mb-6">
         <div className="flex items-center justify-between mb-2">
-          <span className="text-sm font-semibold text-gray-700">Match Percentage</span>
-          <span className="text-2xl font-bold text-green-600">{matchPercentage}%</span>
+          <span className="text-sm font-semibold text-gray-700">Your Match</span>
+          <span className={`text-2xl font-bold ${matchPercentage >= 70 ? 'text-green-600' : matchPercentage >= 40 ? 'text-yellow-600' : 'text-red-600'}`}>{matchPercentage}%</span>
         </div>
         <div className="w-full bg-gray-200 rounded-full h-3">
           <div
-            className="bg-gradient-to-r from-green-400 to-green-600 h-3 rounded-full transition-all"
+            className={`h-3 rounded-full transition-all ${matchPercentage >= 70 ? 'bg-green-500' : matchPercentage >= 40 ? 'bg-yellow-500' : 'bg-red-500'}`}
             style={{ width: `${matchPercentage}%` }}
           ></div>
         </div>
@@ -20,27 +20,29 @@ export function SkillMatcher({ matchPercentage, matchedSkills, missingSkills }) 
 
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <h5 className="text-sm font-semibold text-green-700 mb-3 flex items-center gap-2">
-            ✓ Matched
+          <h5 className="text-sm font-semibold text-green-700 mb-3">
+            ✓ You Have ({matchedSkills?.length || 0})
           </h5>
-          <div className="space-y-2">
+          <div className="space-y-1.5">
             {matchedSkills?.map((skill, idx) => (
-              <span key={idx} className="block px-2 py-1 bg-green-100 text-green-700 text-xs rounded">
-                ✓ {skill}
-              </span>
+              <div key={idx} className="flex items-center gap-2 px-3 py-1.5 bg-green-50 border border-green-200 rounded text-sm text-green-800">
+                <span className="text-green-600 font-bold">✓</span>
+                {skill}
+              </div>
             ))}
           </div>
         </div>
 
         <div>
-          <h5 className="text-sm font-semibold text-amber-700 mb-3 flex items-center gap-2">
-            ⚠ To Learn
+          <h5 className="text-sm font-semibold text-red-700 mb-3">
+            ✗ You Need ({missingSkills?.length || 0})
           </h5>
-          <div className="space-y-2">
+          <div className="space-y-1.5">
             {missingSkills?.map((skill, idx) => (
-              <span key={idx} className="block px-2 py-1 bg-amber-100 text-amber-700 text-xs rounded">
-                ⚠ {skill}
-              </span>
+              <div key={idx} className="flex items-center gap-2 px-3 py-1.5 bg-red-50 border border-red-200 rounded text-sm text-red-800">
+                <span className="text-red-600 font-bold">✗</span>
+                {skill}
+              </div>
             ))}
           </div>
         </div>

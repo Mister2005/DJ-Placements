@@ -116,7 +116,7 @@ export default function JobsListingPage() {
                     isSaved={savedjobs.includes(job.id)}
                     onSave={handleSave}
                     onApply={handleApply}
-                    matchScore={autoMatch ? job.match_score : undefined}
+                    matchScore={autoMatch ? job.skill_match_pct : undefined}
                   />
                 ))}
               </div>
