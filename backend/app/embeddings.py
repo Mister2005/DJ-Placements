@@ -77,7 +77,7 @@ Embedding summary:"""
                 model="llama-3.1-8b-instant",
                 messages=[{"role": "user", "content": prompt}],
                 temperature=0.1,
-                max_completion_tokens=256,
+                max_completion_tokens=4096,
             )
             rewritten = completion.choices[0].message.content.strip()
             return rewritten if rewritten else text

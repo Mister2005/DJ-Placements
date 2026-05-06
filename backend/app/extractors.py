@@ -67,28 +67,37 @@ JSON array of extracted skills:"""
                 model="llama-3.1-8b-instant",
                 messages=[{"role": "user", "content": prompt}],
                 temperature=0.1,
-                max_completion_tokens=512,
+                max_completion_tokens=4096,
             )
             response = completion.choices[0].message.content.strip()
 
             # Parse JSON array from response
             # Handle cases where LLM wraps in markdown code blocks
-            if response.startswith("```"):
-                response = response.split("```")[1]
-                if response.startswith("json"):
-                    response = response[4:]
-                response = response.strip()
+            if "```" in response:
+                parts = response.split("```")
+                for part in parts:
+                    part = part.strip()
+                    if part.startswith("json"):
+                        part = part[4:].strip()
+                    if part.startswith("["):
+                        response = part
+                        break
+
+            # Find the JSON array in the response
+            start = response.find("[")
+            end = response.rfind("]")
+            if start != -1 and end != -1:
+                response = response[start:end + 1]
 
             skills = json.loads(response)
             if isinstance(skills, list):
-                # Clean and deduplicate
                 seen = set()
                 unique = []
                 for s in skills:
                     if isinstance(s, str) and s.strip() and s.lower() not in seen:
                         seen.add(s.lower())
                         unique.append(s.strip())
-                return unique[:30]  # Cap at 30 skills
+                return unique[:30]
             return []
         except Exception as e:
             print(f"[LLMSkillExtractor] Error: {e}")
