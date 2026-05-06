@@ -18,16 +18,20 @@ export default function ProfilePage() {
   const [resumeUrl, setResumeUrl] = useState(null)
   const [extracting, setExtracting] = useState(false)
   const [extractedSkills, setExtractedSkills] = useState([])
+  const [skillsDictionary, setSkillsDictionary] = useState([])
+  const [skillSuggestions, setSkillSuggestions] = useState([])
 
   useEffect(() => {
     const fetchProfile = async () => {
       try {
-        const [profileRes, prefsRes] = await Promise.all([
+        const [profileRes, prefsRes, skillsRes] = await Promise.all([
           authService.getProfile(),
-          notificationService.getPreferences()
+          notificationService.getPreferences(),
+          resumeService.getSkillsDictionary()
         ])
         setProfile(profileRes.data.user)
         setFormData(profileRes.data.user)
+        setSkillsDictionary(skillsRes.data.skills)
         setNotifPrefs(prefsRes.data.preferences || {})
       } catch (err) {
         console.error('Failed to fetch profile:', err)
@@ -46,13 +50,40 @@ export default function ProfilePage() {
   const handleAddSkill = () => {
     const skill = newSkill.trim()
     if (!skill) return
+    // Only allow skills from the dictionary
+    const match = skillsDictionary.find(s => s.toLowerCase() === skill.toLowerCase())
+    if (!match) return
     const currentSkills = formData.skills || []
-    if (currentSkills.some((item) => item.toLowerCase() === skill.toLowerCase())) {
+    if (currentSkills.some((item) => item.toLowerCase() === match.toLowerCase())) {
       setNewSkill('')
+      setSkillSuggestions([])
       return
     }
-    setFormData({ ...formData, skills: [...currentSkills, skill] })
+    setFormData({ ...formData, skills: [...currentSkills, match] })
     setNewSkill('')
+    setSkillSuggestions([])
+  }
+
+  const handleSkillInputChange = (value) => {
+    setNewSkill(value)
+    if (value.trim().length > 0) {
+      const currentSkills = (formData.skills || []).map(s => s.toLowerCase())
+      const filtered = skillsDictionary.filter(s =>
+        s.toLowerCase().includes(value.toLowerCase()) && !currentSkills.includes(s.toLowerCase())
+      ).slice(0, 8)
+      setSkillSuggestions(filtered)
+    } else {
+      setSkillSuggestions([])
+    }
+  }
+
+  const handleSelectSuggestion = (skill) => {
+    const currentSkills = formData.skills || []
+    if (!currentSkills.some(s => s.toLowerCase() === skill.toLowerCase())) {
+      setFormData({ ...formData, skills: [...currentSkills, skill] })
+    }
+    setNewSkill('')
+    setSkillSuggestions([])
   }
 
   const handleRemoveSkill = (skillToRemove) => {
@@ -143,23 +174,17 @@ export default function ProfilePage() {
         />
 
         <section className="section-card mb-6 p-5 sm:p-6">
-          <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex min-w-0 items-center gap-4">
-              <img src={`https://ui-avatars.com/api/?name=${encodeURIComponent(profile?.name || 'Student')}&size=96&background=2557d6&color=fff`} alt="" className="h-20 w-20 rounded-lg" />
-              <div className="min-w-0">
-                <h2 className="truncate text-2xl font-bold text-foreground">{profile?.name}</h2>
-                <p className="mt-1 text-sm font-medium text-secondary-foreground">{profile?.branch || 'Branch not set'} · {profile?.current_year || 'Year not set'}</p>
-                <p className="mt-1 truncate text-sm text-secondary-foreground">{profile?.email}</p>
-              </div>
-            </div>
-            <div className="rounded-lg border border-secondary-border bg-slate-50 px-4 py-3">
-              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-secondary-foreground">Resume</p>
-              <p className="mt-1 text-sm font-bold text-foreground">{profile?.resume_uploaded ? 'Uploaded' : 'Missing'}</p>
+          <div className="flex items-center gap-4">
+            <img src={`https://ui-avatars.com/api/?name=${encodeURIComponent(profile?.name || 'Student')}&size=96&background=2557d6&color=fff`} alt="" className="h-20 w-20 rounded-lg" />
+            <div className="min-w-0">
+              <h2 className="truncate text-2xl font-bold text-foreground">{profile?.name}</h2>
+              <p className="mt-1 text-sm font-medium text-secondary-foreground">{profile?.branch || 'Branch not set'} · {profile?.current_year || 'Year not set'}</p>
+              <p className="mt-1 truncate text-sm text-secondary-foreground">{profile?.email}</p>
             </div>
           </div>
         </section>
 
-        <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_340px]">
+        <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_340px] lg:items-start">
           <div className="space-y-6">
             <section className="section-card p-5 sm:p-6">
               <h3 className="mb-5 text-lg font-bold text-foreground">Personal details</h3>
@@ -205,7 +230,18 @@ export default function ProfilePage() {
 
               {editing && (
                 <div className="mt-4 flex flex-col gap-2 sm:flex-row">
-                  <input value={newSkill} onChange={(event) => setNewSkill(event.target.value)} onKeyDown={(event) => { if (event.key === 'Enter') { event.preventDefault(); handleAddSkill() } }} placeholder="Add a skill" className="field-input" />
+                  <div className="relative flex-1">
+                    <input value={newSkill} onChange={(event) => handleSkillInputChange(event.target.value)} onKeyDown={(event) => { if (event.key === 'Enter') { event.preventDefault(); handleAddSkill() } }} placeholder="Search skills..." className="field-input w-full" />
+                    {skillSuggestions.length > 0 && (
+                      <div className="absolute z-10 top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-48 overflow-y-auto">
+                        {skillSuggestions.map((skill) => (
+                          <button key={skill} type="button" onClick={() => handleSelectSuggestion(skill)} className="w-full text-left px-3 py-2 text-sm hover:bg-blue-50 hover:text-blue-700 transition-colors">
+                            {skill}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                   <Button type="button" onClick={handleAddSkill}><Plus className="h-4 w-4" /> Add</Button>
                 </div>
               )}

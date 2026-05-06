@@ -127,7 +127,7 @@
   }
 
   .field-input {
-    @apply w-full rounded-lg border border-secondary-border px-3.5 py-2.5 text-sm text-foreground placeholder:text-slate-500 transition focus:border-primary focus:ring-2 focus:ring-primary/20 disabled:cursor-not-allowed disabled:text-slate-500;
+    @apply w-full rounded-lg border border-secondary-border px-3.5 py-2.5 text-sm text-foreground placeholder:text-slate-500 transition focus:border-primary focus:ring-2 focus:ring-primary/20 disabled:cursor-not-allowed disabled:opacity-80;
     background: rgba(2, 8, 23, 0.52);
     backdrop-filter: blur(14px);
   }
@@ -273,7 +273,7 @@
 
   .login-showcase {
     position: relative;
-    min-height: calc(100vh - 3rem);
+    min-height: 680px;
   }
 
   .login-showcase::before {

@@ -1,12 +1,70 @@
 """
 50 curated job listings with unique descriptions.
-Each job is hand-written with distinct requirements, responsibilities, and company context.
+All job skills are validated against the master skills dictionary.
 """
 
 from datetime import timedelta
+from app.skills_dictionary import SKILLS_LOWER
+
+# Remap non-standard skill names to dictionary entries
+_REMAP = {
+    'spark': 'Apache Spark', 'excel': 'Data Analysis', 'a/b testing': 'Analytics',
+    'performance optimization': 'Low Latency', 'rest': 'REST APIs', 'databases': 'SQL',
+    'core data': 'iOS', 'healthkit': 'iOS', 'mathematics': 'Statistics',
+    'junit': 'Unit Testing', 'maven': 'Java', 'sap abap': 'Java', 'sap hana': 'SQL',
+    'fiori': 'React', 'odata': 'REST APIs', 'rfc': 'API Design', 'bapi': 'API Design',
+    'alv reports': 'Data Visualization', 'mvvm': 'Android', 'coroutines': 'Kotlin',
+    'dagger/hilt': 'Android', 'room db': 'SQLite', 'spring': 'Spring Boot',
+    'express': 'Express.js', 'testing': 'Unit Testing', 'automation': 'CI/CD',
+    'debugging': 'System Design', 'performance': 'Low Latency',
+    'performance tuning': 'Low Latency', 'storage': 'Distributed Systems',
+    'storage systems': 'Distributed Systems', 'file systems': 'Operating Systems',
+    'linux kernel': 'Linux', 'android aosp': 'Android', 'messaging systems': 'Kafka',
+    'cloud strategy': 'AWS', 'cloud computing': 'AWS', 'product thinking': 'Product Strategy',
+    'powerbi': 'Power BI', 'web vitals': 'React', 'css-in-js': 'CSS',
+    'design systems': 'React', 'aws mediaservices': 'AWS', 'webrtc': 'WebSockets',
+    'websocket': 'WebSockets', 'ffmpeg': 'Python', 'hls/dash': 'Networking',
+    'cdn': 'Networking', 'information retrieval': 'NLP', 'image processing': 'Computer Vision',
+    'gans': 'Deep Learning', 'linear algebra': 'Statistics',
+    'functional programming': 'Haskell', 'opencv': 'Computer Vision',
+    'cuda': 'C++', 'gpu programming': 'C++', 'llvm': 'C++', 'compiler design': 'C++',
+    'postgis': 'PostgreSQL', 'sdn': 'Networking', 'paxos/raft': 'Distributed Systems',
+    'google analytics': 'Analytics', 'quantitative finance': 'Quantitative Analysis',
+    'fixed income': 'Financial Modeling', 'risk modeling': 'Risk Management',
+    '5g/lte': 'Networking', 'dsp': 'Embedded Systems', 'x86 architecture': 'ARM Architecture',
+    'yang models': 'Networking', 'vsphere': 'Kubernetes',
+    'high concurrency': 'Concurrency', 'accessibility': 'React',
+    'assembly': 'C', 'business analysis': 'Analytics', 'memory management': 'C++',
+    'optimization': 'Algorithms', 'pwa': 'React', 'stochastic calculus': 'Statistics',
+    'tcp/ip': 'Networking', 'user research': 'Product Strategy', 'wireframing': 'Figma',
+}
+
+
+def _normalize_skills(skills):
+    """Ensure all skills are from the master dictionary."""
+    result = []
+    seen = set()
+    for s in skills:
+        if s.lower() in SKILLS_LOWER:
+            canonical = SKILLS_LOWER[s.lower()]
+        elif s.lower() in _REMAP:
+            canonical = _REMAP[s.lower()]
+        else:
+            continue
+        if canonical.lower() not in seen:
+            seen.add(canonical.lower())
+            result.append(canonical)
+    return result[:8]
 
 
 def get_all_jobs(today):
+    jobs = _raw_jobs(today)
+    for j in jobs:
+        j["skills"] = _normalize_skills(j["skills"])
+    return jobs
+
+
+def _raw_jobs(today):
     return [
         {"company": "Google", "role": "Software Engineer - Cloud Infrastructure", "domain": "Software", "location": "Bangalore", "salary": "₹15-20 LPA", "job_type": "Full-time", "skills": ["Python", "Go", "Kubernetes", "Docker", "System Design", "Distributed Systems", "gRPC", "Linux"], "last_date_to_apply": today + timedelta(days=10), "description": "Build and operate Google Cloud Platform's core compute stack. Design fault-tolerant distributed systems handling millions of RPS. Write performance-critical Go and Python, operate Kubernetes clusters at scale.", "eligibility": "B.Tech/M.Tech CS/IT, 7+ CGPA", "responsibilities": ["Design horizontally scalable microservices", "Own full lifecycle from design to production", "Optimize p99 latency under 50ms", "Lead incident response"], "benefits": ["₹15-20 LPA + RSUs", "Health insurance", "20% time for projects", "₹2L learning budget"], "about_company": "Google Cloud serves millions of organizations worldwide."},
         {"company": "Microsoft", "role": "Product Manager - Azure DevOps", "domain": "Product", "location": "Pune", "salary": "₹18-25 LPA", "job_type": "Full-time", "skills": ["Product Strategy", "SQL", "Analytics", "Leadership", "Agile", "Communication", "Data Analysis"], "last_date_to_apply": today + timedelta(days=15), "description": "Own the CI/CD pipeline experience for 500K+ dev teams. Synthesize customer research and telemetry into product roadmap. Make scope tradeoffs daily with engineering.", "eligibility": "Any engineering degree, 2+ years PM experience", "responsibilities": ["Own Azure Pipelines roadmap", "Run weekly customer calls", "Define success metrics", "Write clear PRDs"], "benefits": ["₹18-25 LPA + bonus", "ESPP 15% discount", "30 days PTO", "MBA sponsorship"], "about_company": "Microsoft Azure is the world's second-largest cloud."},

@@ -50,9 +50,9 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="min-h-screen bg-background px-4 py-6 sm:px-6 lg:px-8">
-      <div className="command-surface mx-auto grid min-h-[calc(100vh-3rem)] w-full max-w-6xl overflow-hidden lg:grid-cols-[1fr_440px]">
-        <section className="login-showcase hidden border-r border-secondary-border p-8 lg:flex lg:flex-col">
+    <main className="flex min-h-screen items-center justify-center bg-background px-4 py-6 sm:px-6 lg:px-8">
+      <div className="command-surface mx-auto grid w-full max-w-6xl overflow-hidden lg:grid-cols-[1.1fr_480px]">
+        <section className="login-showcase hidden border-r border-secondary-border p-10 lg:flex lg:flex-col">
           <div className="flex items-center justify-between">
             <BrandLogo />
             <div className="soft-panel flex items-center gap-2 px-3 py-1.5 text-xs font-semibold text-secondary-foreground">
@@ -155,9 +155,9 @@ export default function LoginPage() {
               </button>
             </div>
 
-            <div className="mt-8 rounded-lg border border-secondary-border bg-slate-50 p-4">
+            <div className="mt-8 soft-panel p-5">
               <p className="text-xs font-semibold uppercase tracking-[0.16em] text-secondary-foreground">Demo access</p>
-              <div className="mt-3 grid gap-2 text-sm text-slate-700">
+              <div className="mt-3 grid gap-2 text-sm text-secondary-foreground">
                 <p>Email: <span className="font-mono text-foreground">student@college.edu</span></p>
                 <p>Password: <span className="font-mono text-foreground">password123</span></p>
               </div>

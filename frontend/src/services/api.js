@@ -81,6 +81,7 @@ export const resumeService = {
   },
   skillMatching: (jobId) => api.get(`/resume/match/${jobId}`),
   autoMatchJobs: () => api.get('/resume/auto-match'),
+  getSkillsDictionary: () => api.get('/resume/skills-dictionary'),
 }
 
 export const communityService = {

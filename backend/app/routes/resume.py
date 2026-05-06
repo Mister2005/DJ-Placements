@@ -221,3 +221,11 @@ Resume:
     except Exception as e:
         print(f"[ProfileExtractor] Error: {e}")
         return {}
+
+
+@resume_bp.route("/skills-dictionary", methods=["GET"])
+@jwt_required()
+def get_skills_dictionary():
+    """Return the master skills list for frontend dropdown."""
+    from app.skills_dictionary import SKILLS
+    return jsonify({"skills": SKILLS}), 200

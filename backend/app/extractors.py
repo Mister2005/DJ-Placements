@@ -49,23 +49,23 @@ class LLMSkillExtractor(SkillExtractor):
         if not text or len(text.strip()) < 50:
             return []
 
+        from app.skills_dictionary import SKILLS
+
         # Truncate very long resumes to fit context window
         truncated = text[:4000]
+        skills_list = ", ".join(SKILLS)
 
-        prompt = f"""You are a resume parser. Extract ONLY technical skills from this resume.
+        prompt = f"""You are a resume parser. Extract skills from this resume.
+
+You MUST ONLY select skills from this approved list:
+{skills_list}
 
 RULES:
-- Only include programming languages, frameworks, libraries, tools, databases, cloud platforms, and technical methodologies.
-- DO NOT include: certifications, degrees, university names, company names, project names, soft skills (like "problem solving", "teamwork"), or generic terms (like "debugging", "system faults").
-- Use standard naming conventions: "Python" not "python", "Node.js" not "nodejs", "React" not "ReactJS", "AWS" not "Amazon Web Services", "PostgreSQL" not "postgres", "TensorFlow" not "Tensorflow", "scikit-learn" not "sklearn".
-- Keep each skill concise (1-3 words max).
+- ONLY return skills that appear in the approved list above.
+- Match the exact casing from the list (e.g., "Node.js" not "nodejs").
+- If the resume mentions something similar to a skill in the list, use the list version.
 - Maximum 20 skills.
-
-VALID examples: Python, Java, React, Node.js, AWS, Docker, Kubernetes, PostgreSQL, MongoDB, TensorFlow, PyTorch, Flask, Django, Spring Boot, SQL, Git, Linux, Kafka, Redis, GraphQL
-
-INVALID examples: Problem Solving, Debugging, System Faults, Google Colab, Kaggle, GitHub, BioBERT, ERP Systems, Communication, Leadership
-
-Return ONLY a JSON array. Nothing else.
+- Return ONLY a JSON array. Nothing else.
 
 Resume:
 {truncated}"""
@@ -99,13 +99,17 @@ Resume:
 
             skills = json.loads(response)
             if isinstance(skills, list):
+                from app.skills_dictionary import SKILLS_LOWER
                 seen = set()
                 unique = []
                 for s in skills:
-                    if isinstance(s, str) and s.strip() and s.lower() not in seen:
-                        seen.add(s.lower())
-                        unique.append(s.strip())
-                return unique[:30]
+                    if isinstance(s, str) and s.strip():
+                        # Map to canonical name from dictionary
+                        canonical = SKILLS_LOWER.get(s.strip().lower())
+                        if canonical and canonical.lower() not in seen:
+                            seen.add(canonical.lower())
+                            unique.append(canonical)
+                return unique[:20]
             return []
         except Exception as e:
             print(f"[LLMSkillExtractor] Error: {e}")
