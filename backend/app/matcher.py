@@ -31,13 +31,14 @@ class HybridJobMatcher(JobMatcher):
     def index_jobs(self, jobs: List[Dict[str, Any]]) -> None:
         """
         Index all jobs into the vector store.
-        Called once at startup or when jobs change.
+        LLM rewrites each job description for optimal embedding.
         """
         if not jobs:
             return
 
         texts = [self._build_job_text(job) for job in jobs]
-        embeddings = self._embedder.embed_batch(texts)
+        contexts = ["job"] * len(texts)
+        embeddings = self._embedder.embed_batch(texts, contexts)
 
         vectors = []
         for i, job in enumerate(jobs):
@@ -63,7 +64,7 @@ class HybridJobMatcher(JobMatcher):
         if not jobs:
             return {}
 
-        # Build user text and embed it
+        # Build user text for embedding
         user_text = self._build_user_text(user_profile)
         if not user_text.strip():
             return {job["id"]: 0 for job in jobs}
@@ -71,8 +72,12 @@ class HybridJobMatcher(JobMatcher):
         # Index jobs (idempotent — overwrites existing)
         self.index_jobs(jobs)
 
-        # Query vector store for similar jobs
-        user_embedding = self._embedder.embed_batch([user_text] + [self._build_job_text(j) for j in jobs])[0]
+        # Embed user profile with LLM rewriting
+        all_texts = [user_text] + [self._build_job_text(j) for j in jobs]
+        all_contexts = ["user"] + ["job"] * len(jobs)
+        all_embeddings = self._embedder.embed_batch(all_texts, all_contexts)
+        user_embedding = all_embeddings[0]
+
         results = self._store.query(user_embedding, top_k=len(jobs))
 
         # Build score map from vector similarity

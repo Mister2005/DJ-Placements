@@ -10,8 +10,8 @@ No route or matcher code changes needed.
 
 import os
 from app.interfaces import TextExtractor, SkillExtractor, EmbeddingProvider, VectorStore, JobMatcher
-from app.extractors import PdfTextExtractor, DictionarySkillExtractor
-from app.embeddings import TfidfEmbeddingProvider
+from app.extractors import PdfTextExtractor, LLMSkillExtractor
+from app.embeddings import LLMEnhancedEmbeddingProvider
 from app.vector_store import PineconeVectorStore, InMemoryVectorStore
 from app.matcher import HybridJobMatcher
 
@@ -35,11 +35,23 @@ def _create_vector_store() -> VectorStore:
         return InMemoryVectorStore()
 
 
-# Singleton instances — created once, reused across requests
+def _create_skill_extractor() -> SkillExtractor:
+    """Create LLM-based skill extractor if Groq key available."""
+    api_key = os.getenv("GROQ_API_KEY", "")
+    if api_key:
+        try:
+            return LLMSkillExtractor()
+        except Exception as e:
+            print(f"[WARN] LLM skill extractor unavailable ({e})")
+    # No fallback — AI is required
+    raise ValueError("GROQ_API_KEY is required for AI skill extraction")
+
+
+# Singleton instances
 _text_extractor: TextExtractor = PdfTextExtractor()
-_skill_extractor: SkillExtractor = DictionarySkillExtractor()
-_embedding_provider: EmbeddingProvider = TfidfEmbeddingProvider(max_features=512)
-_vector_store: VectorStore = None  # Lazy init (needs env vars loaded)
+_skill_extractor: SkillExtractor = None  # Lazy init
+_embedding_provider: EmbeddingProvider = LLMEnhancedEmbeddingProvider(max_features=512)
+_vector_store: VectorStore = None  # Lazy init
 _job_matcher: JobMatcher = None  # Lazy init
 
 
@@ -48,6 +60,9 @@ def get_text_extractor() -> TextExtractor:
 
 
 def get_skill_extractor() -> SkillExtractor:
+    global _skill_extractor
+    if _skill_extractor is None:
+        _skill_extractor = _create_skill_extractor()
     return _skill_extractor
 
 
